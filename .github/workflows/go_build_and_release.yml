@@ -95,3 +95,4 @@ jobs:
         with:
           draft: false
           prerelease: false
+          tag_name: ${{ github.event.inputs.version }}
