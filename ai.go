@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	sendkeys "git.tcp.direct/kayos/sendkeys"
+	"github.com/fatih/color"
 	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
 	"github.com/shirou/gopsutil/process"
@@ -16,14 +17,6 @@ import (
 	"runtime"
 	"strings"
 	"time"
-)
-
-const (
-	darkGreen    = "\033[32m"
-	yellow       = "\033[93m"
-	reset        = "\033[0m"
-	colorComment = darkGreen
-	colorCommand = yellow
 )
 
 type Message struct {
@@ -197,12 +190,16 @@ func main() {
 
 	messages := generateChatGPTMessages(userInput)
 
-	fmt.Printf("\033[93m🤖 Thinking ...\033[0m")
+	color.New(color.FgYellow).Printf("🤖 Thinking ...")
+	color.Unset()
 
 	// Dummy delay to simulate the AI thinking
 	time.Sleep(3 * time.Second)
 
-	fmt.Printf("\r%s\r\033[93m🤖\033[0m\n", strings.Repeat(" ", 80))
+	fmt.Printf("\r%s\r", strings.Repeat(" ", 80))
+	color.New(color.FgYellow).Print("🤖")
+	color.Unset()
+	fmt.Println()
 
 	// Call the function to process messages and type the commands
 	processMessagesAndTypeCommands(messages)
