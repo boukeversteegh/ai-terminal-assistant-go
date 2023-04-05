@@ -15,9 +15,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
+
+var configFilePath = filepath.Join(os.Getenv("HOME"), "ai.yaml")
 
 type Message struct {
 	Role    string `yaml:"role" json:"role"`
@@ -274,9 +277,76 @@ type APIError struct {
 	} `json:"error"`
 }
 
+func getAPIKey() string {
+	apiKey := readAPIKey()
+	if apiKey == "" {
+		fmt.Printf("Please provide your OpenAI API.\n"+
+			"- Through an environment variable: OPENAI_API_KEY\n"+
+			"- Through a configuration file:    %s\n", configFilePath)
+		apiKey = askAPIKey()
+		writeAPIKey(apiKey)
+	}
+	return apiKey
+}
+
+type Config struct {
+	OpenAI struct {
+		APIKey string `yaml:"api_key"`
+	} `yaml:"openai"`
+}
+
+func readAPIKey() string {
+	// Check if the API key is set in the environment variable
+	envAPIKey := os.Getenv("OPENAI_API_KEY")
+	if envAPIKey != "" {
+		return envAPIKey
+	}
+
+	configFile, err := ioutil.ReadFile(configFilePath)
+	if err != nil {
+		return ""
+	}
+
+	var config Config
+	err = yaml.Unmarshal(configFile, &config)
+	if err != nil {
+		log.Fatalf("Error unmarshalling config file: %v", err)
+	}
+
+	return config.OpenAI.APIKey
+}
+
+func askAPIKey() string {
+	var apiKey string
+	fmt.Print("Enter your OpenAI API Key (configuration will be updated): ")
+	fmt.Scanln(&apiKey)
+	return apiKey
+}
+
+func writeAPIKey(apiKey string) {
+	config := Config{
+		OpenAI: struct {
+			APIKey string `yaml:"api_key"`
+		}{
+			APIKey: apiKey,
+		},
+	}
+
+	configData, err := yaml.Marshal(config)
+	if err != nil {
+		log.Fatalf("Error marshalling config data: %v", err)
+	}
+
+	err = ioutil.WriteFile(configFilePath, configData, 0644)
+	if err != nil {
+		log.Fatalf("Error writing config file: %v", err)
+	}
+
+	fmt.Printf("API key added to your %s\n", configFilePath)
+}
+
 func getBashCommand(messages []Message) (string, error) {
-	// Replace with your actual API key or use os.Getenv("OPENAI_API_KEY") if it's set as an environment variable
-	apiKey := os.Getenv("OPENAI_API_KEY")
+	apiKey := getAPIKey()
 
 	client := &http.Client{}
 
