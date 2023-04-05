@@ -28,17 +28,21 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.version }}
           release_name: "${{ github.event.inputs.version }}"
-          draft: false
+          draft: draft
           prerelease: false
 
   build:
+    continue-on-error: true
     permissions: write-all
     needs: create_release
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [windows, darwin, linux]
-        goarch: [amd64, arm64]
+        goos:
+          - windows
+#          - darwin
+          - linux
+        goarch: [ amd64, arm64 ]
         exclude:
           - goos: windows
             goarch: arm64
@@ -76,3 +80,14 @@ jobs:
           asset_path: ./release/${{ steps.artifacts.outputs.filename }}
           asset_name: ${{ steps.artifacts.outputs.filename }}
           asset_content_type: application/octet-stream
+  publish_release:
+    permissions: write-all
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish Release
+        uses: eregon/publish-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_id: ${{ steps.create_release.outputs.id }}
