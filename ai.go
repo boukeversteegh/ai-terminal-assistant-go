@@ -17,7 +17,6 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"time"
 )
 
 type Message struct {
@@ -206,9 +205,6 @@ func main() {
 	color.New(color.FgYellow).Printf("🤖 Thinking ...")
 	color.Unset()
 
-	// Dummy delay to simulate the AI thinking
-	time.Sleep(3 * time.Second)
-
 	fmt.Printf("\r%s\r", strings.Repeat(" ", 80))
 	color.New(color.FgYellow).Print("🤖")
 	color.Unset()
@@ -261,7 +257,7 @@ func processMessagesAndTypeCommands(messages []Message) {
 
 		if strings.HasPrefix(line, "#") {
 			color.New(color.FgGreen).Println(line)
-		} else if len(line) > 0 && len(executableCommands) > 1 {
+		} else {
 			color.New(color.FgYellow).Println(line)
 		}
 	}
@@ -285,7 +281,7 @@ func getBashCommand(messages []Message) (string, error) {
 	client := &http.Client{}
 
 	requestBody, err := json.Marshal(map[string]interface{}{
-		"model":    "gpt-3.5-turbo",
+		"model":    "gpt-4",
 		"messages": messages,
 	})
 	if err != nil {
