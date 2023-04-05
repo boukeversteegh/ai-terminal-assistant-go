@@ -30,6 +30,7 @@ jobs:
           release_name: "${{ github.event.inputs.version }}"
           draft: draft
           prerelease: false
+        continue-on-error: true
 
   build:
     continue-on-error: true
@@ -40,12 +41,14 @@ jobs:
       matrix:
         goos:
           - windows
-#          - darwin
           - linux
-        goarch: [ amd64, arm64 ]
+          - darwin
+        goarch:
+          - amd64
+          - arm64 # not supported by keybd_event
         exclude:
-          - goos: windows
-            goarch: arm64
+          - goarch: arm64
+          - goos: darwin # keybd currently not supported on darwin
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
