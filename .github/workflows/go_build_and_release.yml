@@ -89,8 +89,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Publish Release
-        uses: eregon/publish-release@v1
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          release_id: ${{ steps.create_release.outputs.id }}
+          draft: false
+          prerelease: false
