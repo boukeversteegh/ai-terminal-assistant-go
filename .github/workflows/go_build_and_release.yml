@@ -16,12 +16,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Create and push tag
-        uses: actions-gh-pages@v3
-        with:
-          tag: ${{ github.event.inputs.version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create tag
+        run: git tag ${{ github.event.inputs.version }}
 
       - name: Create Release
         id: create_release
