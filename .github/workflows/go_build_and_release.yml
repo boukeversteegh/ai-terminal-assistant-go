@@ -16,11 +16,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
       - name: Create Tag
         run: git tag ${{ github.event.inputs.version }}
 
       - name: Push Tag
-        run: git push --tags
+        run: |
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push --tags
 
       - name: Create Release
         id: create_release
