@@ -1,0 +1,70 @@
+name: Go Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number for release'
+        required: true
+
+jobs:
+  build:
+    name: Build AI
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [windows, darwin, linux]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Build AI binary
+        run: go build -o ai-${{ matrix.goos }}-${{ matrix.goarch }}${{ (matrix.goos == 'windows') && '.exe' || '' }} ai.go
+
+      - name: Archive build artifacts
+        id: artifacts
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          mkdir -p release
+          FILENAME=ai-${VERSION}-${GOOS}-${GOARCH}${{ (matrix.goos == 'windows') && '.exe' || '' }}
+          mv ai-${GOOS}-${GOARCH}${{ (matrix.goos == 'windows') && '.exe' || '' }} ./release/${FILENAME}
+          echo "::set-output name=filename::${FILENAME}"
+
+      - name: Upload to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/${{ steps.artifacts.outputs.filename }}
+          asset_name: ${{ steps.artifacts.outputs.filename }}
+          asset_content_type: application/octet-stream
+
+  create_release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          release_name: "${{ github.event.inputs.version }}"
+          draft: false
+          prerelease: false
