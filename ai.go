@@ -260,10 +260,9 @@ func processMessagesAndTypeCommands(messages []Message) {
 		}
 
 		if strings.HasPrefix(line, "#") {
-			comment := line
-			fmt.Println(comment)
+			color.New(color.FgGreen).Println(line)
 		} else if len(line) > 0 && len(executableCommands) > 1 {
-			fmt.Println(line)
+			color.New(color.FgYellow).Println(line)
 		}
 	}
 
