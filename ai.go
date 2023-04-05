@@ -9,6 +9,7 @@ import (
 	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
 	"github.com/shirou/gopsutil/process"
+	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -181,12 +182,24 @@ func generateChatGPTMessages(userInput string) []Message {
 }
 
 func main() {
-	if len(os.Args) != 2 {
+	userInput := ""
+	if len(os.Args) > 1 {
+		userInput = os.Args[1]
+	} else {
 		fmt.Println("Usage: ./ai \"<natural language command>\"")
 		os.Exit(1)
 	}
 
-	userInput := os.Args[1]
+	if !isTerm(os.Stdin.Fd()) {
+		stdinBytes, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			log.Fatal(err)
+		}
+		stdin := strings.TrimSpace(string(stdinBytes))
+		if len(stdin) > 0 {
+			userInput = fmt.Sprintf("%s. Use the following additional context to improve your suggestion:\n\n---\n\n%s\n", userInput, stdin)
+		}
+	}
 
 	messages := generateChatGPTMessages(userInput)
 
@@ -347,4 +360,8 @@ func typeCommands(executableCommands []string) {
 			}
 		}
 	}
+}
+
+func isTerm(fd uintptr) bool {
+	return terminal.IsTerminal(int(fd))
 }
