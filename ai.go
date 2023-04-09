@@ -49,53 +49,41 @@ func getSystemInfo() string {
 func getShell() string {
 	knownShells := []string{"bash", "sh", "zsh", "powershell", "cmd", "fish", "tcsh", "csh", "ksh", "dash"}
 
-	// Find the first non-Go process in the process tree
 	pid := os.Getppid()
-	var parentProcess *process.Process
 	for {
 		ppid, err := process.NewProcess(int32(pid))
 		if err != nil {
-			log.Fatal(err)
+			// If the process does not exist or there's another error, break the loop
+			break
 		}
-
 		parentProcessName, err := ppid.Name()
-		parentProcessName = strings.TrimSuffix(parentProcessName, ".exe")
-
 		if err != nil {
 			log.Fatal(err)
 		}
+		parentProcessName = strings.TrimSuffix(parentProcessName, ".exe")
 
-		if parentProcessName != "go" {
-			parentProcess = ppid
-			break
+		for _, shell := range knownShells {
+			if parentProcessName == shell {
+				return shell
+			}
 		}
 
 		pidInt, err := ppid.Ppid()
-		pid = int(pidInt)
 
 		if err != nil {
-			log.Fatal(err)
+			// If there's an error, break the loop
+			break
 		}
-	}
-
-	// Check if the process is a known shell
-	parentProcessName, err := parentProcess.Name()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	parentProcessName = strings.ToLower(strings.TrimSuffix(parentProcessName, ".exe"))
-
-	for _, shell := range knownShells {
-		if parentProcessName == shell {
-			return shell
-		}
+		pid = int(pidInt)
 	}
 
 	return ""
 }
 
 func getShellVersion(shell string) string {
+	if shell == "" {
+		return ""
+	}
 	versionCmd := exec.Command(shell, "--version")
 	versionOutput, err := versionCmd.Output()
 	if err != nil {
@@ -133,6 +121,14 @@ func sudoAvailable() bool {
 	return err == nil
 }
 
+func getAiHome() string {
+	aiHome := os.Getenv("AI_HOME")
+	if aiHome == "" {
+		aiHome = filepath.Join(filepath.Dir(filepath.Dir(os.Args[0])))
+	}
+	return aiHome
+}
+
 func generateChatGPTMessages(userInput string) []Message {
 	shell := getShell()
 	shellVersion := getShellVersion(shell)
@@ -143,7 +139,9 @@ func generateChatGPTMessages(userInput string) []Message {
 
 	prompts := Prompts{}
 
-	promptsData, err := ioutil.ReadFile("prompts.yaml")
+	aiHome := getAiHome()
+	promptsFilePath := filepath.Join(aiHome, "prompts.yaml")
+	promptsData, err := ioutil.ReadFile(promptsFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
