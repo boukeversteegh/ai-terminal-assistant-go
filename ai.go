@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	sendkeys "git.tcp.direct/kayos/sendkeys"
 	"github.com/fatih/color"
@@ -124,7 +125,7 @@ func sudoAvailable() bool {
 func getAiHome() string {
 	aiHome := os.Getenv("AI_HOME")
 	if aiHome == "" {
-		aiHome = filepath.Join(filepath.Dir(filepath.Dir(os.Args[0])))
+		aiHome = filepath.Join(filepath.Dir(os.Args[0]))
 	}
 	return aiHome
 }
@@ -182,11 +183,16 @@ func generateChatGPTMessages(userInput string) []Message {
 }
 
 func main() {
+	modelFlag := flag.String("model", "gpt-4", "Model to use (e.g., gpt-4 or gpt-3.5-turbo)")
+	debugFlag := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
+
 	userInput := ""
-	if len(os.Args) > 1 {
-		userInput = os.Args[1]
+	args := flag.Args()
+	if len(args) > 0 {
+		userInput = args[0]
 	} else {
-		fmt.Println("Usage: ./ai \"<natural language command>\"")
+		fmt.Println("Usage: ./ai \"<natural language command>\" [--model model_name | -3 | -4]")
 		os.Exit(1)
 	}
 
@@ -201,10 +207,24 @@ func main() {
 		}
 	}
 
-	messages := generateChatGPTMessages(userInput)
-
 	color.New(color.FgYellow).Printf("🤖 Thinking ...")
 	color.Unset()
+
+	// flush stdout
+	fmt.Print("\r")
+
+	messages := generateChatGPTMessages(userInput)
+
+	if *debugFlag {
+		for _, message := range messages {
+			fmt.Println(message.Content)
+		}
+	}
+
+	bashCommand, err := getBashCommand(messages, *modelFlag)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	fmt.Printf("\r%s\r", strings.Repeat(" ", 80))
 	color.New(color.FgYellow).Print("🤖")
@@ -212,8 +232,7 @@ func main() {
 	fmt.Println()
 
 	// Call the function to process messages and type the commands
-	processMessagesAndTypeCommands(messages)
-
+	processMessagesAndTypeCommands(bashCommand)
 }
 
 type ChatGPTResponse struct {
@@ -224,12 +243,7 @@ type ChatGPTResponse struct {
 	} `json:"choices"`
 }
 
-func processMessagesAndTypeCommands(messages []Message) {
-	bashCommand, err := getBashCommand(messages)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
+func processMessagesAndTypeCommands(bashCommand string) {
 	// Normalize the command by removing unnecessary characters
 	normalizeCommand := func(command string) string {
 		return strings.Trim(strings.Trim(strings.Trim(command, "&& \\"), ";"), " ")
@@ -343,13 +357,13 @@ func writeAPIKey(apiKey string) {
 	fmt.Printf("API key added to your %s\n", configFilePath)
 }
 
-func getBashCommand(messages []Message) (string, error) {
+func getBashCommand(messages []Message, model string) (string, error) {
 	apiKey := getAPIKey()
 
 	client := &http.Client{}
 
 	requestBody, err := json.Marshal(map[string]interface{}{
-		"model":    "gpt-4",
+		"model":    model,
 		"messages": messages,
 	})
 	if err != nil {
