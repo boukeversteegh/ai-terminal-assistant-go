@@ -109,7 +109,6 @@ func getShellVersion(shell string) string {
 		}
 		versionCmdOutputString := string(versionCmdOutput)
 		versionOutput = &versionCmdOutputString
-	case "bash":
 	default:
 		versionCmd := exec.Command(shell, "--version")
 		versionCmdOutput, err := versionCmd.Output()
@@ -348,10 +347,15 @@ func printCommand(shellCommand string) {
 }
 
 func executeCommands(commands []string, shell string) {
-	for _, command := range commands {
-		if err := executeCommand(command, shell); err != nil {
+	// if we're running bash, concatenate all commands into a single command with newlines, start with set -e
+	// then pipe the whole thing into bash
+	if shell == "bash" {
+		command := fmt.Sprintf("set -e\n%s", strings.Join(commands, "\n"))
+		err := executeCommand(command, shell)
+		if err != nil {
 			log.Fatalln(err)
 		}
+		return
 	}
 }
 
@@ -359,7 +363,8 @@ func executeCommand(command string, shell string) error {
 	var cmd *exec.Cmd
 	switch shell {
 	case "bash":
-		cmd = exec.Command("bash", "-c", command)
+		cmd = exec.Command("bash")
+		cmd.Stdin = strings.NewReader(command)
 	case "powershell":
 		cmd = exec.Command("powershell", "-Command", command)
 	default:
