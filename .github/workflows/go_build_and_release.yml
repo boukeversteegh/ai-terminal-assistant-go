@@ -52,7 +52,8 @@ jobs:
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
-
+      EXECUTABLE_NAME: ai${{ (matrix.goos == 'windows') && '.exe' || '' }}
+      ARCHIVE_NAME: ai-${{ matrix.goos }}-${{ matrix.goarch }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -63,15 +64,16 @@ jobs:
           go-version: 1.17
 
       - name: Build AI binary
-        run: go build -o ai-${{ matrix.goos }}-${{ matrix.goarch }}${{ (matrix.goos == 'windows') && '.exe' || '' }} ai.go
+        run: |
+          go build -o $EXECUTABLE_NAME
 
       - name: Archive build artifacts
         id: artifacts
         run: |
           VERSION=${{ github.event.inputs.version }}
           mkdir -p release
-          FILENAME=ai-${VERSION}-${GOOS}-${GOARCH}${{ (matrix.goos == 'windows') && '.exe' || '' }}
-          mv ai-${GOOS}-${GOARCH}${{ (matrix.goos == 'windows') && '.exe' || '' }} ./release/${FILENAME}
+          
+          zip -j ./release/${ARCHIVE_NAME} ${EXECUTABLE_NAME}
           echo "::set-output name=filename::${FILENAME}"
 
       - name: Upload to release
@@ -80,8 +82,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: ./release/${{ steps.artifacts.outputs.filename }}
-          asset_name: ${{ steps.artifacts.outputs.filename }}
+          asset_path: ./release/${{ steps.artifacts.outputs.filename }}.zip
+          asset_name: ${{ steps.artifacts.outputs.filename }}.zip
           asset_content_type: application/octet-stream
   publish_release:
     permissions: write-all
