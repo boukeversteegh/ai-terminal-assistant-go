@@ -197,9 +197,9 @@ func main() {
 	}
 
 	if *debugFlag {
-		fmt.Println("User Input:", userInput)
 		fmt.Println("Model:", *modelFlag)
 		fmt.Println("Debug:", *debugFlag)
+		fmt.Println("User Input:", userInput)
 	}
 
 	if !isTerm(os.Stdin.Fd()) {
