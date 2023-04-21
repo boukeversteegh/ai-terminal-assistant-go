@@ -6,7 +6,11 @@ on:
       version:
         description: 'Version number for release'
         required: true
-
+  push:
+    tags:
+      - v*
+env:
+  VERSION: ${{ github.event.inputs.version || github.ref }}
 jobs:
   create_release:
     runs-on: ubuntu-latest
@@ -53,6 +57,7 @@ jobs:
       GOARCH: ${{ matrix.goarch }}
       EXECUTABLE_NAME: ai${{ (matrix.goos == 'windows') && '.exe' || '' }}
       ARCHIVE_NAME: ai-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+      VERSION: ${{ env.VERSION }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -69,7 +74,6 @@ jobs:
       - name: Archive build artifacts
         id: artifacts
         run: |
-          VERSION=${{ github.event.inputs.version }}
           mkdir -p release
           
           # Add go executable and prompts.yaml to zip
@@ -88,6 +92,8 @@ jobs:
     permissions: write-all
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ env.VERSION }}
     steps:
       - name: Publish Release
         uses: softprops/action-gh-release@v1
