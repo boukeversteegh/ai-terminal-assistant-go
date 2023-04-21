@@ -39,6 +39,8 @@ jobs:
             "Generate release notes for AI terminal assistant, a developer oriented cli tool.
             Write the release notes in a user-friendly way. Skip technical details that don't matter to a user.")
           echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Create Release
         id: create_release
