@@ -40,10 +40,10 @@ jobs:
         run: |
           # language: shell
           LAST_RELEASE=$(git describe --tags --match "v*" --exclude "*-rc*" --exclude "$VERSION" --abbrev=0)
-          git log --pretty=format:"%s" $LAST_RELEASE.. | ./ai --text \
+          git log --pretty=format:"%s" $LAST_RELEASE.. | ./ai -3 --text \
             "Generate release notes for AI terminal assistant, a developer oriented cli tool.
             Write the release notes in a user-friendly way. Skip technical details that don't matter to a user." > release_notes.txt
-          echo "RELEASE_NOTES=$(cat release_notes.txt | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')" >> $GITHUB_ENV
+          echo "RELEASE_NOTES=$(cat release_notes.txt)" >> $GITHUB_ENV
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
