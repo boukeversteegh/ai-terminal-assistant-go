@@ -252,7 +252,7 @@ type ChatGPTResponse struct {
 func processMessagesAndTypeCommands(bashCommand string) {
 	// Normalize the command by removing unnecessary characters
 	normalizeCommand := func(command string) string {
-		return strings.Trim(strings.Trim(strings.Trim(command, "&& \\"), ";"), " ")
+		return strings.Trim(command, " ")
 	}
 
 	getExecutableCommands := func(command string) []string {
@@ -435,13 +435,17 @@ func typeCommands(executableCommands []string) {
 		}
 		k.Type("}")
 	} else {
-		for commandIndex, command := range executableCommands {
-			k.Type(command)
-			if commandIndex < len(executableCommands)-1 && !strings.HasSuffix(command, "\\") {
-				k.Type(" && \\")
-				k.Enter()
-			}
+		if len(executableCommands) == 1 {
+			k.Type(executableCommands[0])
+			return
 		}
+		k.Type("(")
+		k.Enter()
+		for _, command := range executableCommands {
+			k.Type(command)
+			k.Enter()
+		}
+		k.Type(")")
 	}
 }
 
