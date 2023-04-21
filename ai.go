@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 )
 
@@ -59,7 +60,7 @@ func getShell() string {
 		}
 		parentProcessName, err := ppid.Name()
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		parentProcessName = strings.TrimSuffix(parentProcessName, ".exe")
 
@@ -81,22 +82,51 @@ func getShell() string {
 	return ""
 }
 
+var shellCache *string = nil
+
+func getShellCached() string {
+	if shellCache == nil {
+		shell := getShell()
+		shellCache = &shell
+	}
+	return *shellCache
+}
+
 func getShellVersion(shell string) string {
 	if shell == "" {
 		return ""
 	}
-	versionCmd := exec.Command(shell, "--version")
-	versionOutput, err := versionCmd.Output()
-	if err != nil {
-		log.Fatal(err)
+
+	var versionOutput *string = nil
+	switch shell {
+	case "powershell":
+		// read: $PSVersionTable.PSVersion
+		versionCmd := exec.Command(shell, "-Command", "$PSVersionTable.PSVersion")
+		versionCmdOutput, err := versionCmd.Output()
+		if err != nil {
+			log.Printf("Error getting shell version: %s", shell)
+			panic(err)
+		}
+		versionCmdOutputString := string(versionCmdOutput)
+		versionOutput = &versionCmdOutputString
+	case "bash":
+	default:
+		versionCmd := exec.Command(shell, "--version")
+		versionCmdOutput, err := versionCmd.Output()
+		if err != nil {
+			log.Printf("Error getting shell version: %s", shell)
+			panic(err)
+		}
+		versionCmdOutputString := string(versionCmdOutput)
+		versionOutput = &versionCmdOutputString
 	}
-	return strings.TrimSpace(string(versionOutput))
+	return strings.TrimSpace(*versionOutput)
 }
 
 func getWorkingDirectory() string {
 	wd, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return wd
 }
@@ -127,6 +157,13 @@ func getAiHome() string {
 	if aiHome == "" {
 		aiHome = filepath.Join(filepath.Dir(os.Args[0]))
 	}
+
+	// If we are running AI using `go run`, the AI_HOME environment variable will be set to a go-build directory.
+	// We need to check for this and ask the user to set the AI_HOME environment variable manually.
+	if strings.Contains(aiHome, "go-build") {
+		panic(errors.New("AI_HOME is a go-build directory. When running from source with `go run`, please set the AI_HOME environment variable manually."))
+	}
+
 	return aiHome
 }
 
@@ -144,11 +181,12 @@ func generateChatGPTMessages(userInput string) []Message {
 	promptsFilePath := filepath.Join(aiHome, "prompts.yaml")
 	promptsData, err := ioutil.ReadFile(promptsFilePath)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error reading prompts file: %s", promptsFilePath)
+		panic(err)
 	}
 	err = yaml.Unmarshal(promptsData, &prompts)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	shellMessages := prompts.Bash.Messages
@@ -183,16 +221,37 @@ func generateChatGPTMessages(userInput string) []Message {
 }
 
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			// This block will execute when a panic occurs.
+			// We can print a stack trace by calling debug.PrintStack.
+			debug.PrintStack()
+			fmt.Println("Panic:", r)
+		}
+	}()
 	modelFlag := flag.String("model", "gpt-4", "Model to use (e.g., gpt-4 or gpt-3.5-turbo)")
 	debugFlag := flag.Bool("debug", false, "Enable debug mode")
+	executeFlag := flag.Bool("execute", false, "Execute the command instead of typing it out (dangerous!)")
+	gpt3Flag := flag.Bool("3", false, "Shorthand for --model=gpt-3.5-turbo")
+
+	// Add shorthands
+	flag.StringVar(modelFlag, "m", "gpt-4", "Shorthand for model")
+	flag.BoolVar(debugFlag, "d", false, "Shorthand for debug")
+	flag.BoolVar(executeFlag, "x", false, "Shorthand for execute")
+
 	flag.Parse()
+
+	if *gpt3Flag {
+		*modelFlag = "gpt-3.5-turbo"
+	}
 
 	userInput := ""
 	args := flag.Args()
 	if len(args) > 0 {
 		userInput = strings.Join(args, " ")
 	} else {
-		fmt.Println("Usage: ./ai \"<natural language command>\" [--model model_name | -3 | -4]")
+		fmt.Println("Usage: ai [options] <natural language command>")
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
@@ -205,7 +264,7 @@ func main() {
 	if !isTerm(os.Stdin.Fd()) {
 		stdinBytes, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		stdin := strings.TrimSpace(string(stdinBytes))
 		if len(stdin) > 0 {
@@ -227,7 +286,7 @@ func main() {
 		}
 	}
 
-	bashCommand, err := getBashCommand(messages, *modelFlag)
+	shellCommand, err := getShellCommand(messages, *modelFlag)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -237,8 +296,16 @@ func main() {
 	color.Unset()
 	fmt.Println()
 
-	// Call the function to process messages and type the commands
-	processMessagesAndTypeCommands(bashCommand)
+	executableCommands := getExecutableCommands(shellCommand)
+	printCommand(shellCommand)
+
+	shell := getShellCached()
+
+	if *executeFlag {
+		executeCommands(executableCommands, shell)
+	} else {
+		typeCommands(executableCommands)
+	}
 }
 
 type ChatGPTResponse struct {
@@ -249,29 +316,25 @@ type ChatGPTResponse struct {
 	} `json:"choices"`
 }
 
-func processMessagesAndTypeCommands(bashCommand string) {
-	// Normalize the command by removing unnecessary characters
+func getExecutableCommands(command string) []string {
 	normalizeCommand := func(command string) string {
 		return strings.Trim(command, " ")
 	}
-
-	getExecutableCommands := func(command string) []string {
-		commands := []string{}
-		for _, command := range strings.Split(command, "\n") {
-			if strings.HasPrefix(command, "#") {
-				continue
-			}
-			normalizedCommand := normalizeCommand(command)
-			if len(normalizedCommand) > 0 {
-				commands = append(commands, normalizedCommand)
-			}
+	commands := []string{}
+	for _, command := range strings.Split(command, "\n") {
+		if strings.HasPrefix(command, "#") {
+			continue
 		}
-		return commands
+		normalizedCommand := normalizeCommand(command)
+		if len(normalizedCommand) > 0 {
+			commands = append(commands, normalizedCommand)
+		}
 	}
+	return commands
+}
 
-	executableCommands := getExecutableCommands(bashCommand)
-
-	for _, line := range strings.Split(bashCommand, "\n") {
+func printCommand(shellCommand string) {
+	for _, line := range strings.Split(shellCommand, "\n") {
 		if len(strings.Trim(line, " ")) == 0 {
 			continue
 		}
@@ -282,8 +345,29 @@ func processMessagesAndTypeCommands(bashCommand string) {
 			color.New(color.FgYellow).Println(line)
 		}
 	}
+}
 
-	typeCommands(executableCommands)
+func executeCommands(commands []string, shell string) {
+	for _, command := range commands {
+		if err := executeCommand(command, shell); err != nil {
+			log.Fatalln(err)
+		}
+	}
+}
+
+func executeCommand(command string, shell string) error {
+	var cmd *exec.Cmd
+	switch shell {
+	case "bash":
+		cmd = exec.Command("bash", "-c", command)
+	case "powershell":
+		cmd = exec.Command("powershell", "-Command", command)
+	default:
+		return fmt.Errorf("unsupported shell: %s", shell)
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 type APIError struct {
@@ -363,7 +447,7 @@ func writeAPIKey(apiKey string) {
 	fmt.Printf("API key added to your %s\n", configFilePath)
 }
 
-func getBashCommand(messages []Message, model string) (string, error) {
+func getShellCommand(messages []Message, model string) (string, error) {
 	apiKey := getAPIKey()
 
 	client := &http.Client{}
@@ -419,7 +503,7 @@ func typeCommands(executableCommands []string) {
 
 	k, err := sendkeys.NewKBWrapWithOptions(sendkeys.Noisy)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	if shellName == "powershell" {
