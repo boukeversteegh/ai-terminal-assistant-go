@@ -36,9 +36,12 @@ type Shell struct {
 type Prompts struct {
 	Bash       Shell `yaml:"bash"`
 	Powershell Shell `yaml:"powershell"`
-	Common     struct {
+	Command    struct {
 		Messages []Message `yaml:"messages"`
-	} `yaml:"common"`
+	} `yaml:"command"`
+	Text struct {
+		Messages []Message `yaml:"messages"`
+	} `yaml:"text"`
 }
 
 func getSystemInfo() string {
@@ -166,7 +169,7 @@ func getAiHome() string {
 	return aiHome
 }
 
-func generateChatGPTMessages(userInput string) []Message {
+func generateChatGPTMessages(userInput string, mode Mode) []Message {
 	shell := getShell()
 	shellVersion := getShellVersion(shell)
 	systemInfo := getSystemInfo()
@@ -193,7 +196,12 @@ func generateChatGPTMessages(userInput string) []Message {
 		shellMessages = prompts.Powershell.Messages
 	}
 
-	commonMessages := prompts.Common.Messages
+	var commonMessages []Message
+	if mode == CommandMode {
+		commonMessages = prompts.Command.Messages
+	} else {
+		commonMessages = prompts.Text.Messages
+	}
 
 	for i := range commonMessages {
 		commonMessages[i].Content = strings.NewReplacer(
@@ -216,8 +224,27 @@ func generateChatGPTMessages(userInput string) []Message {
 		Content: userInput,
 	}
 
-	return append(append(commonMessages, shellMessages...), userMessage)
+	var outputMessages []Message
+
+	// add common messages
+	outputMessages = append(outputMessages, commonMessages...)
+
+	// add shell messages if in command mode
+	if mode == CommandMode {
+		outputMessages = append(outputMessages, shellMessages...)
+	}
+
+	// add user message
+	outputMessages = append(outputMessages, userMessage)
+	return outputMessages
 }
+
+type Mode int
+
+const (
+	CommandMode Mode = iota
+	TextMode
+)
 
 func main() {
 	defer func() {
@@ -231,6 +258,7 @@ func main() {
 	modelFlag := flag.String("model", "gpt-4", "Model to use (e.g., gpt-4 or gpt-3.5-turbo)")
 	debugFlag := flag.Bool("debug", false, "Enable debug mode")
 	executeFlag := flag.Bool("execute", false, "Execute the command instead of typing it out (dangerous!)")
+	textFlag := flag.Bool("text", false, "Enable text mode")
 	gpt3Flag := flag.Bool("3", false, "Shorthand for --model=gpt-3.5-turbo")
 
 	// Add shorthands
@@ -240,8 +268,12 @@ func main() {
 
 	flag.Parse()
 
+	var mode = CommandMode
 	if *gpt3Flag {
 		*modelFlag = "gpt-3.5-turbo"
+	}
+	if *textFlag {
+		mode = TextMode
 	}
 
 	userInput := ""
@@ -267,7 +299,7 @@ func main() {
 		}
 		stdin := strings.TrimSpace(string(stdinBytes))
 		if len(stdin) > 0 {
-			userInput = fmt.Sprintf("%s. Use the following additional context to improve your suggestion:\n\n---\n\n%s\n", userInput, stdin)
+			userInput = fmt.Sprintf("%s\n\nUse the following additional context to improve your response:\n\n---\n\n%s\n", userInput, stdin)
 		}
 	}
 
@@ -277,7 +309,7 @@ func main() {
 	// flush stdout
 	fmt.Print("\r")
 
-	messages := generateChatGPTMessages(userInput)
+	messages := generateChatGPTMessages(userInput, mode)
 
 	if *debugFlag {
 		for _, message := range messages {
@@ -285,7 +317,7 @@ func main() {
 		}
 	}
 
-	shellCommand, err := getShellCommand(messages, *modelFlag)
+	response, err := getAiResponse(messages, *modelFlag)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -295,15 +327,19 @@ func main() {
 	color.Unset()
 	fmt.Println()
 
-	executableCommands := getExecutableCommands(shellCommand)
-	printCommand(shellCommand)
+	if mode == CommandMode {
+		executableCommands := getExecutableCommands(response)
+		printCommand(response)
 
-	shell := getShellCached()
+		shell := getShellCached()
 
-	if *executeFlag {
-		executeCommands(executableCommands, shell)
+		if *executeFlag {
+			executeCommands(executableCommands, shell)
+		} else {
+			typeCommands(executableCommands)
+		}
 	} else {
-		typeCommands(executableCommands)
+		fmt.Println(response)
 	}
 }
 
@@ -452,7 +488,7 @@ func writeAPIKey(apiKey string) {
 	fmt.Printf("API key added to your %s\n", configFilePath)
 }
 
-func getShellCommand(messages []Message, model string) (string, error) {
+func getAiResponse(messages []Message, model string) (string, error) {
 	apiKey := getAPIKey()
 
 	client := &http.Client{}
