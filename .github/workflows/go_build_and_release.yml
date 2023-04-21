@@ -100,4 +100,4 @@ jobs:
         with:
           draft: false
           prerelease: false
-          tag_name: ${{ github.event.inputs.version }}
+          tag_name: ${{ env.VERSION }}
