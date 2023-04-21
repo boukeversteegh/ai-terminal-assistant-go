@@ -14,7 +14,6 @@ env:
 jobs:
   build:
     permissions: write-all
-    needs: create_release
     runs-on: ubuntu-latest
     strategy:
       matrix:
