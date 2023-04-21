@@ -25,6 +25,21 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: git tag -f ${{ github.event.inputs.version }}
 
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Generate Release Notes
+        run: |
+          # language: shell
+          go build -o ai
+          LAST_RELEASE=$(git describe --tags --match "v*" --exclude "*-rc*" --exclude "$VERSION" --abbrev=0)
+          RELEASE_NOTES=$(git log --pretty=format:"%s" $LAST_RELEASE.. | ./ai --text \
+            "Generate release notes for AI terminal assistant, a developer oriented cli tool.
+            Write the release notes in a user-friendly way. Skip technical details that don't matter to a user.")
+          echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -35,6 +50,7 @@ jobs:
           release_name: "${{ github.event.inputs.version }}"
           draft: draft
           prerelease: false
+          body: ${{ env.RELEASE_NOTES }}
         continue-on-error: true
 
   build:
