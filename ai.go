@@ -190,10 +190,16 @@ func main() {
 	userInput := ""
 	args := flag.Args()
 	if len(args) > 0 {
-		userInput = args[0]
+		userInput = strings.Join(args, " ")
 	} else {
 		fmt.Println("Usage: ./ai \"<natural language command>\" [--model model_name | -3 | -4]")
 		os.Exit(1)
+	}
+
+	if *debugFlag {
+		fmt.Println("User Input:", userInput)
+		fmt.Println("Model:", *modelFlag)
+		fmt.Println("Debug:", *debugFlag)
 	}
 
 	if !isTerm(os.Stdin.Fd()) {
