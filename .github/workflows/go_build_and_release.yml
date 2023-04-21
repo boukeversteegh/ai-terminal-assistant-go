@@ -73,7 +73,8 @@ jobs:
           VERSION=${{ github.event.inputs.version }}
           mkdir -p release
           
-          zip -j ./release/${ARCHIVE_NAME} ${EXECUTABLE_NAME}
+          # Add go executable and prompts.yaml to zip
+          zip -j ./release/${ARCHIVE_NAME} ${EXECUTABLE_NAME} prompts.yaml
 
       - name: Upload to release
         uses: actions/upload-release-asset@v1
@@ -81,8 +82,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: ./release/${ARCHIVE_NAME}
-          asset_name: ${ARCHIVE_NAME}
+          asset_path: ./release/${{ env.ARCHIVE_NAME }}
+          asset_name: ${{ env.ARCHIVE_NAME }}
           asset_content_type: application/octet-stream
   publish_release:
     permissions: write-all
