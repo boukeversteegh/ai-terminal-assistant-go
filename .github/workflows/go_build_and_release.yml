@@ -57,7 +57,6 @@ jobs:
       GOARCH: ${{ matrix.goarch }}
       EXECUTABLE_NAME: ai${{ (matrix.goos == 'windows') && '.exe' || '' }}
       ARCHIVE_NAME: ai-${{ matrix.goos }}-${{ matrix.goarch }}.zip
-      VERSION: ${{ env.VERSION }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -92,8 +91,6 @@ jobs:
     permissions: write-all
     needs: build
     runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ env.VERSION }}
     steps:
       - name: Publish Release
         uses: softprops/action-gh-release@v1
