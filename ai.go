@@ -303,11 +303,13 @@ func main() {
 		}
 	}
 
-	color.New(color.FgYellow).Printf("🤖 Thinking ...")
-	color.Unset()
+	if mode == CommandMode {
+		color.New(color.FgYellow).Printf("🤖 Thinking ...")
+		color.Unset()
 
-	// flush stdout
-	fmt.Print("\r")
+		// flush stdout
+		fmt.Print("\r")
+	}
 
 	messages := generateChatGPTMessages(userInput, mode)
 
@@ -322,10 +324,12 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	fmt.Printf("\r%s\r", strings.Repeat(" ", 80))
-	color.New(color.FgYellow).Print("🤖")
-	color.Unset()
-	fmt.Println()
+	if mode == CommandMode {
+		fmt.Printf("\r%s\r", strings.Repeat(" ", 80))
+		color.New(color.FgYellow).Print("🤖")
+		color.Unset()
+		fmt.Println()
+	}
 
 	if mode == CommandMode {
 		executableCommands := getExecutableCommands(response)
