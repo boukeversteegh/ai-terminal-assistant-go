@@ -53,7 +53,7 @@ jobs:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
       EXECUTABLE_NAME: ai${{ (matrix.goos == 'windows') && '.exe' || '' }}
-      ARCHIVE_NAME: ai-${{ matrix.goos }}-${{ matrix.goarch }}
+      ARCHIVE_NAME: ai-${{ matrix.goos }}-${{ matrix.goarch }}.zip
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -74,7 +74,6 @@ jobs:
           mkdir -p release
           
           zip -j ./release/${ARCHIVE_NAME} ${EXECUTABLE_NAME}
-          echo "::set-output name=filename::${FILENAME}"
 
       - name: Upload to release
         uses: actions/upload-release-asset@v1
@@ -82,8 +81,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: ./release/${{ steps.artifacts.outputs.filename }}.zip
-          asset_name: ${{ steps.artifacts.outputs.filename }}.zip
+          asset_path: ./release/${ARCHIVE_NAME}.zip
+          asset_name: ${ARCHIVE_NAME}
           asset_content_type: application/octet-stream
   publish_release:
     permissions: write-all
