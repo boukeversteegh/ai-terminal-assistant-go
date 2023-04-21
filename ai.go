@@ -540,6 +540,9 @@ func getAiResponse(messages []Message, model string) (string, error) {
 }
 
 func typeCommands(executableCommands []string) {
+	if len(executableCommands) == 0 {
+		return
+	}
 	shellName := getShell()
 
 	k, err := sendkeys.NewKBWrapWithOptions(sendkeys.Noisy)
