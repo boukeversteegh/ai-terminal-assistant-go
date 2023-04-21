@@ -81,8 +81,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: ./release/${{ env.ARCHIVE_NAME }}
-          asset_name: ${{ env.ARCHIVE_NAME }}
+          asset_path: ./release/${ARCHIVE_NAME}
+          asset_name: ${ARCHIVE_NAME}
           asset_content_type: application/octet-stream
   publish_release:
     permissions: write-all
