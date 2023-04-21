@@ -12,57 +12,6 @@ on:
 env:
   VERSION: ${{ github.event.inputs.version || github.ref }}
 jobs:
-  create_release:
-    runs-on: ubuntu-latest
-    permissions: write-all
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-
-      - name: Create tag
-        if: github.event_name == 'workflow_dispatch'
-        run: git tag -f ${{ github.event.inputs.version }}
-
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
-
-      - name: Build AI binary
-        run: |
-          go build -o ai
-
-      - name: Generate Release Notes
-        run: |
-          # language: shell
-          LAST_RELEASE=$(git describe --tags --match "v*" --exclude "*-rc*" --exclude "$VERSION" --abbrev=0)
-          git log --pretty=format:"%s" $LAST_RELEASE.. | ./ai -3 --text \
-            "Generate release notes for AI terminal assistant ${VERSION}, a developer oriented cli tool that lets users enter shell commands using natural language.
-            Write the release notes in a user-friendly way, with some emojis. Use markdown. Skip technical details that don't matter to a user." > release_notes.txt
-          RELEASE_NOTES="$(cat release_notes.txt)"
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          echo "$RELEASE_NOTES" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.VERSION }}
-          release_name: "${{ github.event.inputs.version }}"
-          draft: draft
-          prerelease: false
-          body: ${{ env.RELEASE_NOTES }}
-        continue-on-error: true
-
   build:
     permissions: write-all
     needs: create_release
@@ -101,29 +50,40 @@ jobs:
         id: artifacts
         run: |
           mkdir -p release
-          
-          # Add go executable and prompts.yaml to zip
           zip -j ./release/${ARCHIVE_NAME} ${EXECUTABLE_NAME} prompts.yaml
-
-      - name: Upload to release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: ./release/${{ env.ARCHIVE_NAME }}
-          asset_name: ${{ env.ARCHIVE_NAME }}
-          asset_content_type: application/octet-stream
-  publish_release:
+  release:
     permissions: write-all
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Build AI binary
+        run: go build -o ai
+
+      - name: Generate Release Notes
+        run: |
+          # language: shell
+          LAST_RELEASE=$(git describe --tags --match "v*" --exclude "*-rc*" --exclude "$VERSION" --abbrev=0)
+          git log --pretty=format:"%s" $LAST_RELEASE.. | ./ai -3 --text \
+            "Generate release notes for AI terminal assistant ${VERSION}, a developer oriented cli tool that lets users enter shell commands using natural language.
+            Write the release notes in a user-friendly way, with some emojis. Use markdown. Skip technical details that don't matter to a user." > release_notes.txt
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       - name: Publish Release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          draft: false
-          prerelease: false
+          name: ${{ env.VERSION }}
           tag_name: ${{ env.VERSION }}
+          files: |
+            release/*.zip
+          body_path: release_notes.txt
