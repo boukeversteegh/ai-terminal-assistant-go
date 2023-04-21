@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	sendkeys "git.tcp.direct/kayos/sendkeys"
+	"git.tcp.direct/kayos/sendkeys"
 	"github.com/fatih/color"
 	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
