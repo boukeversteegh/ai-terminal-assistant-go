@@ -71,7 +71,7 @@ jobs:
         run: |
           # language: shell
           LAST_RELEASE=$(git describe --tags --match "v*" --exclude "*-rc*" --exclude "$VERSION" --abbrev=0)
-          git log --pretty=format:"%s" $LAST_RELEASE.. | ./ai -3 --text \
+          git log --pretty=format:"%s" $LAST_RELEASE.. | ./ai --text \
             "Generate release notes for AI terminal assistant ${VERSION}, a developer oriented cli tool that lets users enter shell commands using natural language.
             Write the release notes in a user-friendly way, with some emojis. Use markdown. Skip technical details that don't matter to a user." > release_notes.txt
         env:
