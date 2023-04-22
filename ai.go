@@ -557,6 +557,8 @@ func typeCommands(executableCommands []string) {
 
 	if runtime.GOOS == "windows" {
 		keyboard = NewWindowsKeyboard()
+	} else if runtime.GOOS == "darwin" {
+		keyboard = NewMacKeyboard()
 	} else {
 		panic("Unsupported OS")
 	}
