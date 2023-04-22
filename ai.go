@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"git.tcp.direct/kayos/sendkeys"
 	"github.com/fatih/color"
 	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
@@ -543,41 +542,49 @@ func getAiResponse(messages []Message, model string) (string, error) {
 	return command, nil
 }
 
+type KeyboardInterface interface {
+	SendString(string)
+	SendNewLine()
+}
+
 func typeCommands(executableCommands []string) {
 	if len(executableCommands) == 0 {
 		return
 	}
 	shellName := getShell()
 
-	k, err := sendkeys.NewKBWrapWithOptions(sendkeys.Noisy)
-	if err != nil {
-		panic(err)
+	var keyboard KeyboardInterface
+
+	if runtime.GOOS == "windows" {
+		keyboard = NewWindowsKeyboard()
+	} else {
+		panic("Unsupported OS")
 	}
 
 	if shellName == "powershell" {
 		if len(executableCommands) == 1 {
-			k.Type(executableCommands[0])
+			keyboard.SendString(executableCommands[0])
 			return
 		}
 
-		k.Type("AiDo {\n")
+		keyboard.SendString("AiDo {\n")
 		for _, command := range executableCommands {
-			k.Type(command)
-			k.Enter()
+			keyboard.SendString(command)
+			keyboard.SendNewLine()
 		}
-		k.Type("}")
+		keyboard.SendString("}")
 	} else {
 		if len(executableCommands) == 1 {
-			k.Type(executableCommands[0])
+			keyboard.SendString(executableCommands[0])
 			return
 		}
-		k.Type("(")
-		k.Enter()
+		keyboard.SendString("(")
+		keyboard.SendNewLine()
 		for _, command := range executableCommands {
-			k.Type(command)
-			k.Enter()
+			keyboard.SendString(command)
+			keyboard.SendNewLine()
 		}
-		k.Type(")")
+		keyboard.SendString(")")
 	}
 }
 
