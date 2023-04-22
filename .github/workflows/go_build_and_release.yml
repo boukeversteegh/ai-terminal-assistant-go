@@ -70,6 +70,9 @@ jobs:
       - name: Generate Release Notes
         run: |
           # language: shell
+          # strip refs/tags/ prefix from version and save it back to VERSION
+          VERSION=${{ env.VERSION#refs/tags/ }}
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
           LAST_RELEASE=$(git describe --tags --match "v*" --exclude "*-rc*" --exclude "$VERSION" --abbrev=0)
           git log --pretty=format:"%s" $LAST_RELEASE.. | ./ai --text \
             "Generate release notes for AI terminal assistant ${VERSION}, a developer oriented cli tool that lets users enter shell commands using natural language.
