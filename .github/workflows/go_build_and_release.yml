@@ -24,8 +24,6 @@ jobs:
         goarch:
           - amd64
           - arm64
-        exclude:
-          - goos: linux
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
