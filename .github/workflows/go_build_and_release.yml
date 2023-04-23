@@ -70,7 +70,7 @@ jobs:
         run: |
           # language: shell
           # strip refs/tags/ prefix from version and save it back to VERSION
-          VERSION=${{ env.VERSION#refs/tags/ }}
+          VERSION=${VERSION#refs/tags/}
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           LAST_RELEASE=$(git describe --tags --match "v*" --exclude "*-rc*" --exclude "$VERSION" --abbrev=0)
           git log --pretty=format:"%s" $LAST_RELEASE.. | ./ai --text \
