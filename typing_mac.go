@@ -14,7 +14,7 @@ func NewKeyboard() *MacKeyboard {
 	return &MacKeyboard{}
 }
 
-func (k *MacKeyboard) IsWindowFocused() bool {
+func (k *MacKeyboard) IsFocusTheSame() bool {
 	return true
 }
 
