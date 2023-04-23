@@ -1,3 +1,5 @@
+//go:build darwin
+
 package main
 
 import (
@@ -8,8 +10,12 @@ import (
 
 type MacKeyboard struct{}
 
-func NewMacKeyboard() *MacKeyboard {
+func NewKeyboard() *MacKeyboard {
 	return &MacKeyboard{}
+}
+
+func (k *MacKeyboard) IsWindowFocused() bool {
+	return true
 }
 
 func (k *MacKeyboard) SendString(key string) {

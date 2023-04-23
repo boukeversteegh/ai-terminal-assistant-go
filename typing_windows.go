@@ -1,3 +1,5 @@
+//go:build windows
+
 package main
 
 import (
@@ -31,8 +33,23 @@ const (
 	Enter                 = 0x0D // VK_RETURN
 )
 
-func NewWindowsKeyboard() *WindowsKeyboard {
-	return &WindowsKeyboard{}
+type WindowsKeyboard struct {
+	focusedControl FocusedControl
+}
+
+var (
+	user32DLL   = syscall.MustLoadDLL("user32.dll")
+	kernel32DLL = syscall.MustLoadDLL("kernel32.dll")
+)
+
+func NewKeyboard() *WindowsKeyboard {
+	return &WindowsKeyboard{
+		focusedControl: GetFocusedControl(),
+	}
+}
+
+func (k *WindowsKeyboard) IsFocusTheSame() bool {
+	return k.focusedControl.Is(GetFocusedControl())
 }
 
 func (k *WindowsKeyboard) utf16FromString(s string) []uint16 {

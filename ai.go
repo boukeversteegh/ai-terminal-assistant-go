@@ -291,7 +291,8 @@ func main() {
 		fmt.Println("User Input:", userInput)
 	}
 
-	if !isTerm(os.Stdin.Fd()) {
+	withPipedInput := !isTerm(os.Stdin.Fd())
+	if withPipedInput {
 		stdinBytes, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			panic(err)
@@ -305,9 +306,13 @@ func main() {
 	if mode == CommandMode {
 		color.New(color.FgYellow).Printf("🤖 Thinking ...")
 		color.Unset()
-
-		// flush stdout
 		fmt.Print("\r")
+	}
+
+	var keyboard KeyboardInterface
+
+	if mode == CommandMode && !*executeFlag {
+		keyboard = NewKeyboard()
 	}
 
 	messages := generateChatGPTMessages(userInput, mode)
@@ -339,7 +344,16 @@ func main() {
 		if *executeFlag {
 			executeCommands(executableCommands, shell)
 		} else {
-			typeCommands(executableCommands)
+			if !keyboard.IsFocusTheSame() {
+				color.New(color.Faint).Println("Window focus changed during command generation.")
+				color.Unset()
+
+				if !withPipedInput {
+					fmt.Println("Press enter to continue")
+					fmt.Scanln()
+				}
+			}
+			typeCommands(executableCommands, keyboard)
 		}
 	} else {
 		fmt.Println(response)
@@ -545,23 +559,14 @@ func getAiResponse(messages []Message, model string) (string, error) {
 type KeyboardInterface interface {
 	SendString(string)
 	SendNewLine()
+	IsFocusTheSame() bool
 }
 
-func typeCommands(executableCommands []string) {
+func typeCommands(executableCommands []string, keyboard KeyboardInterface) {
 	if len(executableCommands) == 0 {
 		return
 	}
 	shellName := getShell()
-
-	var keyboard KeyboardInterface
-
-	if runtime.GOOS == "windows" {
-		keyboard = NewWindowsKeyboard()
-	} else if runtime.GOOS == "darwin" {
-		keyboard = NewMacKeyboard()
-	} else {
-		panic("Unsupported OS")
-	}
 
 	if shellName == "powershell" {
 		if len(executableCommands) == 1 {

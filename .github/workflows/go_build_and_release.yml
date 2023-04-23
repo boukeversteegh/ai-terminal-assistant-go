@@ -23,10 +23,9 @@ jobs:
           - darwin
         goarch:
           - amd64
-          - arm64 # not supported by keybd_event
+          - arm64
         exclude:
-          - goarch: arm64
-          - goos: darwin # keybd currently not supported on darwin
+          - goos: linux
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
