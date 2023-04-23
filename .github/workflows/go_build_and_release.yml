@@ -44,16 +44,25 @@ jobs:
         run: |
           go build -o $EXECUTABLE_NAME
 
-      - name: Archive build artifacts
+      - name: Create archive
         id: artifacts
         run: |
           mkdir -p release
           zip -j ./release/${ARCHIVE_NAME} ${EXECUTABLE_NAME} prompts.yaml
+      - name: Upload artifact as a build artifact
+        uses: actions/upload-artifact@v2
+        with:
+            name: ${{ env.ARCHIVE_NAME }}
+            path: ./release/${{ env.ARCHIVE_NAME }}
   release:
     permissions: write-all
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: release
       - name: Checkout code
         uses: actions/checkout@v2
         with:
