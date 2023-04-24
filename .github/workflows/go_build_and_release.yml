@@ -50,8 +50,8 @@ jobs:
       - name: Upload artifact as a build artifact
         uses: actions/upload-artifact@v2
         with:
-            name: ${{ env.ARCHIVE_NAME }}
-            path: ./release/${{ env.ARCHIVE_NAME }}
+          name: ${{ env.ARCHIVE_NAME }}
+          path: ./release/${{ env.ARCHIVE_NAME }}
   release:
     permissions: write-all
     needs: build
@@ -60,11 +60,12 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v2
         with:
-          path: release
+          path: release/
       - name: Checkout code
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
@@ -75,16 +76,20 @@ jobs:
 
       - name: Generate Release Notes
         run: |
-          # language: shell
-          # strip refs/tags/ prefix from version and save it back to VERSION
           VERSION=${VERSION#refs/tags/}
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           LAST_RELEASE=$(git describe --tags --match "v*" --exclude "*-rc*" --exclude "$VERSION" --abbrev=0)
           git log --pretty=format:"%s" $LAST_RELEASE.. | ./ai --text \
-            "Generate release notes for AI terminal assistant ${VERSION}, a developer oriented cli tool that lets users enter shell commands using natural language.
+            "Generate release notes for AI terminal assistant ${VERSION}, a developer-oriented cli tool that lets users enter shell commands using natural language.
             Write the release notes in a user-friendly way, with some emojis. Use markdown. Skip technical details that don't matter to a user." > release_notes.txt
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: List release files
+        run: |
+          ls release
+          ls release/*.zip
+
       - name: Publish Release
         uses: softprops/action-gh-release@v1
         env:
@@ -92,5 +97,5 @@ jobs:
         with:
           tag_name: ${{ env.VERSION }}
           files: |
-            release/*.zip
+            ${GITHUB_WORKSPACE}/release/*.zip
           body_path: release_notes.txt
