@@ -75,6 +75,12 @@ jobs:
         with:
           go-version: 1.17
 
+      - name: generate release zips
+        run: |
+          for f in release/*; do
+            zip -r "release/${f}.zip" "$f"
+          done
+
       - name: Build AI binary
         run: go build -o ai
 
