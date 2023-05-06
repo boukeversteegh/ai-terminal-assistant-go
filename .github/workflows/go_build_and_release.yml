@@ -29,6 +29,7 @@ jobs:
       GOARCH: ${{ matrix.goarch }}
       EXECUTABLE_NAME: ai${{ (matrix.goos == 'windows') && '.exe' || '' }}
       ARCHIVE_NAME: ai-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+      RELEASE_NAME: ai-${{ matrix.goos }}-${{ matrix.goarch }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -45,13 +46,13 @@ jobs:
       - name: Create archive
         id: artifacts
         run: |
-          mkdir -p release
-          zip -j ./release/${ARCHIVE_NAME} ${EXECUTABLE_NAME} prompts.yaml
+          mkdir -p release/${RELEASE_NAME}
+          mv ${EXECUTABLE_NAME} prompts.yaml release/${ARCHIVE_NAME}
       - name: Upload artifact as a build artifact
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.ARCHIVE_NAME }}
-          path: ./release
+          name: ${{ env.RELEASE_NAME }}
+          path: ./release/${{ env.RELEASE_NAME }}
   release:
     permissions: write-all
     needs: build
