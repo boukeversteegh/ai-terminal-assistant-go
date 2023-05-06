@@ -106,6 +106,6 @@ jobs:
         with:
           tag_name: ${{ env.VERSION }}
           files: |
-            ${GITHUB_WORKSPACE}/release/*.zip
+            ./release/*.zip
           body_path: release_notes.txt
           fail_on_unmatched_files: true
