@@ -28,8 +28,7 @@ jobs:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
       EXECUTABLE_NAME: ai${{ (matrix.goos == 'windows') && '.exe' || '' }}
-      ARCHIVE_NAME: ai-${{ matrix.goos }}-${{ matrix.goarch }}.zip
-      ARTIFACT_NAME: ai-${{ matrix.goos }}-${{ matrix.goarch }}
+      ARTIFACT_NAME: ai-${{ (matrix.goos == 'darwin') && 'macos' || matrix.goos }}-${{ matrix.goarch }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -43,7 +42,7 @@ jobs:
         run: |
           go build -o $EXECUTABLE_NAME
 
-      - name: Create archive
+      - name: Create Artifact
         id: artifacts
         run: |
           mkdir -p release/${ARTIFACT_NAME}
