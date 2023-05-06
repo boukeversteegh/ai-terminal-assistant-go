@@ -77,10 +77,13 @@ jobs:
 
       - name: generate release zips
         run: |
-          for f in release/*; do
+          cd release/
+          for f in *; do
             zip -r "${f}.zip" "$f"
           done
-
+      - name: List all files
+        run: |
+          find . -not -path '*/\.*' -type f
       - name: Build AI binary
         run: go build -o ai
 
