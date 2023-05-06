@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.ARCHIVE_NAME }}
-          path: ./release/${{ env.ARCHIVE_NAME }}
+          path: ./release
   release:
     permissions: write-all
     needs: build
