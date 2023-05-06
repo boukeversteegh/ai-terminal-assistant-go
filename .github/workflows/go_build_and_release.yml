@@ -47,7 +47,7 @@ jobs:
         id: artifacts
         run: |
           mkdir -p release/${RELEASE_NAME}
-          mv ${EXECUTABLE_NAME} prompts.yaml release/${ARCHIVE_NAME}
+          mv ${EXECUTABLE_NAME} prompts.yaml release/${RELEASE_NAME}
       - name: Upload artifact as a build artifact
         uses: actions/upload-artifact@v2
         with:
