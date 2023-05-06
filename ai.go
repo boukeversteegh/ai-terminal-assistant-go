@@ -21,7 +21,8 @@ import (
 	"strings"
 )
 
-var configFilePath = filepath.Join(os.Getenv("HOME"), "ai.yaml")
+var homeDir, _ = os.UserHomeDir()
+var configFilePath = filepath.Join(homeDir, "ai.yaml")
 
 type Message struct {
 	Role    string `yaml:"role" json:"role"`
@@ -259,6 +260,7 @@ func main() {
 	executeFlag := flag.Bool("execute", false, "Execute the command instead of typing it out (dangerous!)")
 	textFlag := flag.Bool("text", false, "Enable text mode")
 	gpt3Flag := flag.Bool("3", false, "Shorthand for --model=gpt-3.5-turbo")
+	initFlag := flag.Bool("init", false, "Initialize AI")
 
 	// Add shorthands
 	flag.StringVar(modelFlag, "m", "gpt-4", "Shorthand for model")
@@ -266,6 +268,10 @@ func main() {
 	flag.BoolVar(executeFlag, "x", false, "Shorthand for execute")
 
 	flag.Parse()
+
+	if initFlag != nil && *initFlag {
+		initApiKey()
+	}
 
 	var mode = CommandMode
 	if *gpt3Flag {
@@ -440,12 +446,17 @@ type APIError struct {
 func getAPIKey() string {
 	apiKey := readAPIKey()
 	if apiKey == "" {
-		fmt.Printf("Please provide your OpenAI API.\n"+
-			"- Through an environment variable: OPENAI_API_KEY\n"+
-			"- Through a configuration file:    %s\n", configFilePath)
-		apiKey = askAPIKey()
-		writeAPIKey(apiKey)
+		apiKey = initApiKey()
 	}
+	return apiKey
+}
+
+func initApiKey() string {
+	fmt.Printf("Please provide your OpenAI API.\n"+
+		"- Through an environment variable: OPENAI_API_KEY\n"+
+		"- Through a configuration file:    %s\n", configFilePath)
+	var apiKey = askAPIKey()
+	writeAPIKey(apiKey)
 	return apiKey
 }
 
