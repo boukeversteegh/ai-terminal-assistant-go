@@ -57,15 +57,18 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: release/
       - name: Checkout code
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: release/
+      - name: List all files
+        run: |
+          find . -not -path '*/\.*' -type f
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
@@ -85,10 +88,6 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      - name: List release files
-        run: |
-          ls release
-          ls release/*.zip
 
       - name: Publish Release
         uses: softprops/action-gh-release@v1
