@@ -108,3 +108,4 @@ jobs:
           files: |
             ${GITHUB_WORKSPACE}/release/*.zip
           body_path: release_notes.txt
+          fail_on_unmatched_files: true
