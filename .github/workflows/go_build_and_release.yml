@@ -93,8 +93,8 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           LAST_RELEASE=$(git describe --tags --match "v*" --exclude "*-rc*" --exclude "$VERSION" --abbrev=0)
           git log --pretty=format:"%s" $LAST_RELEASE.. | ./ai --text \
-            "Generate release notes for AI terminal assistant ${VERSION}, a developer-oriented cli tool that lets users enter shell commands using natural language.
-            Write the release notes in a user-friendly way, with some emojis. Use markdown. Skip technical details that don't matter to a user." > release_notes.txt
+            "Generate release notes for AI terminal assistant ${VERSION}, a developer-oriented cli tool that lets users enter shell commands using natural language, powered by ai.
+            Write the release notes in a user-friendly way, with some emojis but don't go overboard with marketing, keep it fun but to the point. Use markdown. Add a features, fixes, other section. Don't explain what the tool is, just provide updates. Skip technical details that don't matter to a user. Ignore fixes within github workflow files, unless they matter to the user." > release_notes.txt
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
