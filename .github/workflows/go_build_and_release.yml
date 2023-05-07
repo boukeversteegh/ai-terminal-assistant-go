@@ -41,6 +41,7 @@ jobs:
       - name: Build AI binary
         run: |
           go build -o $EXECUTABLE_NAME
+          [[ "${GOOS}" == "darwin" || "${GOOS}" == "linux" ]] && chmod +x $EXECUTABLE_NAME
 
       - name: Create Artifact
         id: artifacts
