@@ -40,7 +40,7 @@ jobs:
 
       - name: Build AI binary
         run: |
-          go build -o $EXECUTABLE_NAME
+          go build -o $EXECUTABLE_NAME -v -x
           if [[ "${GOOS}" == "darwin" || "${GOOS}" == "linux" ]]; then
             chmod +x $EXECUTABLE_NAME
           fi
