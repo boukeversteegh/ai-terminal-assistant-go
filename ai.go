@@ -371,8 +371,6 @@ func main() {
 			}
 			typeCommands(executableCommands, keyboard)
 		}
-	} else {
-		fmt.Println(response)
 	}
 }
 
