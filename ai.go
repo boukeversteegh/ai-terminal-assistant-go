@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/fatih/color"
@@ -10,24 +8,17 @@ import (
 	"github.com/pkg/errors"
 	"github.com/shirou/gopsutil/process"
 	"golang.org/x/crypto/ssh/terminal"
+	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"runtime/debug"
 	"strings"
 )
-
-var homeDir, _ = os.UserHomeDir()
-var configFilePath = filepath.Join(homeDir, "ai.yaml")
-
-type Message struct {
-	Role    string `yaml:"role" json:"role"`
-	Content string `yaml:"content" json:"content"`
-}
 
 type Shell struct {
 	Messages []Message `yaml:"messages"`
@@ -137,7 +128,7 @@ func getPackageManagers() []string {
 	packageManagers := []string{
 		"pip", "conda", "npm", "yarn", "gem", "apt", "dnf", "yum", "pacman", "zypper", "brew", "choco", "scoop",
 	}
-	installedPackageManagers := []string{}
+	var installedPackageManagers []string
 
 	for _, pm := range packageManagers {
 		_, err := exec.LookPath(pm)
@@ -310,9 +301,7 @@ func main() {
 	}
 
 	if mode == CommandMode {
-		color.New(color.FgYellow).Printf("🤖 Thinking ...")
-		color.Unset()
-		fmt.Print("\r")
+		fmt.Printf("%s\r", color.YellowString("🤖 Thinking ..."))
 	}
 
 	var keyboard KeyboardInterface
@@ -329,21 +318,41 @@ func main() {
 		}
 	}
 
-	response, err := getAiResponse(messages, *modelFlag)
+	chunkStream, err := chatCompletionStream(messages)
+	if err != nil {
+		panic(err)
+	}
+	defer chunkStream.Close()
+
+	var response = ""
+	var firstResponse = true
+	for {
+		// Clear the 'thinking' message on first chunk
+		if mode == CommandMode && firstResponse {
+			firstResponse = false
+			color.Yellow("%s\r🤖", strings.Repeat(" ", 80))
+		}
+
+		chunkResponse, err := chunkStream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			fmt.Printf("\nStream error: %v\n", err)
+			return
+		}
+		chunk := chunkResponse.Choices[0].Delta.Content
+		response += chunk
+
+		printChunk(chunk)
+	}
+
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	if mode == CommandMode {
-		fmt.Printf("\r%s\r", strings.Repeat(" ", 80))
-		color.New(color.FgYellow).Print("🤖")
-		color.Unset()
-		fmt.Println()
-	}
-
-	if mode == CommandMode {
 		executableCommands := getExecutableCommands(response)
-		printCommand(response)
 
 		shell := getShellCached()
 
@@ -366,19 +375,22 @@ func main() {
 	}
 }
 
-type ChatGPTResponse struct {
-	Choices []struct {
-		Message struct {
-			Content string `json:"content"`
-		} `json:"message"`
-	} `json:"choices"`
+func printChunk(content string) {
+	// Before lines that start with a hash, i.e. '\n#' or '^#', make the color green
+	commentRegex := regexp.MustCompile(`(?m)((\n|^)#)`)
+	var formattedContent = commentRegex.ReplaceAllString(content, fmt.Sprintf("%1s[%dm$1", "\x1b", color.FgGreen))
+
+	// Insert a color reset before each newline
+	var newlineRegex = regexp.MustCompile(`(?m)(\n)`)
+	formattedContent = newlineRegex.ReplaceAllString(formattedContent, fmt.Sprintf("%1s[%dm$1", "\x1b", color.Reset))
+	fmt.Print(formattedContent)
 }
 
 func getExecutableCommands(command string) []string {
 	normalizeCommand := func(command string) string {
 		return strings.Trim(command, " ")
 	}
-	commands := []string{}
+	var commands []string
 	for _, command := range strings.Split(command, "\n") {
 		if strings.HasPrefix(command, "#") {
 			continue
@@ -389,20 +401,6 @@ func getExecutableCommands(command string) []string {
 		}
 	}
 	return commands
-}
-
-func printCommand(shellCommand string) {
-	for _, line := range strings.Split(shellCommand, "\n") {
-		if len(strings.Trim(line, " ")) == 0 {
-			continue
-		}
-
-		if strings.HasPrefix(line, "#") {
-			color.New(color.FgGreen).Println(line)
-		} else {
-			color.New(color.FgYellow).Println(line)
-		}
-	}
 }
 
 func executeCommands(commands []string, shell string) {
@@ -432,139 +430,6 @@ func executeCommand(command string, shell string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
-}
-
-type APIError struct {
-	Error struct {
-		Message string `json:"message"`
-		Type    string `json:"type"`
-		Param   string `json:"param"`
-		Code    string `json:"code"`
-	} `json:"error"`
-}
-
-func getAPIKey() string {
-	apiKey := readAPIKey()
-	if apiKey == "" {
-		apiKey = initApiKey()
-	}
-	return apiKey
-}
-
-func initApiKey() string {
-	fmt.Printf("Please provide your OpenAI API.\n"+
-		"- Through an environment variable: OPENAI_API_KEY\n"+
-		"- Through a configuration file:    %s\n", configFilePath)
-	var apiKey = askAPIKey()
-	writeAPIKey(apiKey)
-	return apiKey
-}
-
-type Config struct {
-	OpenAI struct {
-		APIKey string `yaml:"api_key"`
-	} `yaml:"openai"`
-}
-
-func readAPIKey() string {
-	// Check if the API key is set in the environment variable
-	envAPIKey := os.Getenv("OPENAI_API_KEY")
-	if envAPIKey != "" {
-		return envAPIKey
-	}
-
-	configFile, err := ioutil.ReadFile(configFilePath)
-	if err != nil {
-		return ""
-	}
-
-	var config Config
-	err = yaml.Unmarshal(configFile, &config)
-	if err != nil {
-		log.Fatalf("Error unmarshalling config file: %v", err)
-	}
-
-	return config.OpenAI.APIKey
-}
-
-func askAPIKey() string {
-	var apiKey string
-	fmt.Print("Enter your OpenAI API Key (configuration will be updated): ")
-	fmt.Scanln(&apiKey)
-	return apiKey
-}
-
-func writeAPIKey(apiKey string) {
-	config := Config{
-		OpenAI: struct {
-			APIKey string `yaml:"api_key"`
-		}{
-			APIKey: apiKey,
-		},
-	}
-
-	configData, err := yaml.Marshal(config)
-	if err != nil {
-		log.Fatalf("Error marshalling config data: %v", err)
-	}
-
-	err = ioutil.WriteFile(configFilePath, configData, 0644)
-	if err != nil {
-		log.Fatalf("Error writing config file: %v", err)
-	}
-
-	fmt.Printf("API key added to your %s\n", configFilePath)
-}
-
-func getAiResponse(messages []Message, model string) (string, error) {
-	apiKey := getAPIKey()
-
-	client := &http.Client{}
-
-	requestBody, err := json.Marshal(map[string]interface{}{
-		"model":    model,
-		"messages": messages,
-	})
-	if err != nil {
-		return "", errors.Wrap(err, "failed to marshal request body")
-	}
-
-	req, err := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(requestBody))
-	if err != nil {
-		return "", errors.Wrap(err, "failed to create new request")
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to do request")
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to read response body")
-	}
-
-	var apiError APIError
-	if err := json.Unmarshal(body, &apiError); err != nil {
-		panic(err)
-	}
-
-	if apiError.Error.Type != "" {
-		fmt.Println("Error in response body:", apiError.Error.Message)
-		os.Exit(1)
-	}
-
-	var chatGPTResponse ChatGPTResponse
-	err = json.Unmarshal(body, &chatGPTResponse)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to unmarshal response")
-	}
-	command := chatGPTResponse.Choices[0].Message.Content
-
-	return command, nil
 }
 
 type KeyboardInterface interface {
