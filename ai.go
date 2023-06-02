@@ -288,7 +288,8 @@ func main() {
 		fmt.Println("User Input:", userInput)
 	}
 
-	withPipedInput := !isTerm(os.Stdin.Fd())
+	isInteractive := isTerm(os.Stdin.Fd())
+	withPipedInput := !isInteractive
 	if withPipedInput {
 		stdinBytes, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
@@ -344,7 +345,7 @@ func main() {
 		chunk := chunkResponse.Choices[0].Delta.Content
 		response += chunk
 
-		printChunk(chunk)
+		printChunk(chunk, isInteractive)
 	}
 
 	if err != nil {
@@ -375,7 +376,11 @@ func main() {
 	}
 }
 
-func printChunk(content string) {
+func printChunk(content string, isInteractive bool) {
+	if !isInteractive {
+		fmt.Print(content)
+		return
+	}
 	// Before lines that start with a hash, i.e. '\n#' or '^#', make the color green
 	commentRegex := regexp.MustCompile(`(?m)((\n|^)#)`)
 	var formattedContent = commentRegex.ReplaceAllString(content, fmt.Sprintf("%1s[%dm$1", "\x1b", color.FgGreen))
