@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"runtime"
 	"runtime/debug"
+	"sort"
 	"strings"
 )
 
@@ -261,6 +262,7 @@ func getAvailableModels() ([]string, error) {
 	for _, model := range modelList.Models {
 		models = append(models, model.ID)
 	}
+	sort.Strings(models)
 	return models, nil
 }
 func main() {
