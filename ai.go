@@ -299,7 +299,7 @@ func main() {
 
 	var mode = CommandMode
 	if *gpt3Flag {
-		modelFlag = GPT3Dot5Turbo
+		modelFlag = "gpt-3.5-turbo"
 	}
 	if *textFlag {
 		mode = TextMode
@@ -511,23 +511,6 @@ func printChunk(content string, isInteractive bool) {
 	var newlineRegex = regexp.MustCompile(`(?m)(\n)`)
 	formattedContent = newlineRegex.ReplaceAllString(formattedContent, fmt.Sprintf("%1s[%dm$1", "\x1b", color.Reset))
 	fmt.Print(formattedContent)
-}
-
-func getExecutableCommands(command string) []string {
-	normalizeCommand := func(command string) string {
-		return strings.Trim(command, " ")
-	}
-	var commands []string
-	for _, command := range strings.Split(command, "\n") {
-		if strings.HasPrefix(command, "#") {
-			continue
-		}
-		normalizedCommand := normalizeCommand(command)
-		if len(normalizedCommand) > 0 {
-			commands = append(commands, normalizedCommand)
-		}
-	}
-	return commands
 }
 
 func executeCommands(commands []string, shell string) {
