@@ -390,7 +390,7 @@ func main() {
 			}
 
 			// Check if required binaries are available
-			missingBinaries := checkBinaries(returnCommand.Binaries)
+			missingBinaries := checkB	inaries(returnCommand.Binaries)
 			if len(missingBinaries) > 0 {
 				color.Yellow("Missing required binaries: %s", strings.Join(missingBinaries, ", "))
 				color.Yellow("Please install the missing binaries and try again.")
