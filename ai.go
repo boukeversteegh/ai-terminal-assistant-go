@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -324,7 +325,6 @@ func main() {
 	gpt3Flag := flag.Bool("3", false, "Shorthand for --model=gpt-3.5-turbo")
 	initFlag := flag.Bool("init", false, "Initialize AI")
 	listModelsFlag := flag.Bool("list-models", false, "List available models")
-	listModelsFlag := flag.Bool("list-models", false, "List available models")
 
 	// Add shorthands
 	flag.StringVar((*string)(&modelFlag), "m", "gpt-4", "Shorthand for model")
@@ -349,6 +349,8 @@ func main() {
 	if *textFlag {
 		mode = TextMode
 	}
+
+	modelString := modelFlag.String()
 
 	userInput := ""
 	args := flag.Args()
@@ -399,7 +401,7 @@ func main() {
 		}
 	}
 
-	chunkStream, err := chatCompletionStream(messages, *modelFlag)
+	chunkStream, err := chatCompletionStream(messages, modelString)
 	if err != nil {
 		panic(err)
 	}
@@ -477,7 +479,7 @@ func main() {
 				alternativeInput := fmt.Sprintf("The following binaries are missing: %s. Please provide a command to install these binaries, or if that's not possible, provide an alternative command that doesn't require these binaries. If installation instructions are complex, provide a brief explanation or a link to installation instructions.", strings.Join(missingBinaries, ", "))
 				alternativeMessages := append(messages, Message{Role: "user", Content: alternativeInput})
 
-				alternativeResponse, alternativeCommand := getAlternativeResponse(alternativeMessages, *modelFlag)
+				alternativeResponse, alternativeCommand := getAlternativeResponse(alternativeMessages, modelString)
 
 				if alternativeCommand != nil && alternativeCommand.Command != "" {
 					fmt.Println("\nAI's alternative command:")
@@ -523,7 +525,7 @@ func main() {
 			fmt.Println(response)
 		}
 	} else {
-		fmt.Printf("AI response (using model %s):\n", *modelFlag)
+		fmt.Printf("AI response (using model %s):\n", modelString)
 		fmt.Println(response)
 	}
 }
