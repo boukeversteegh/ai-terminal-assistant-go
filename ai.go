@@ -428,7 +428,7 @@ func main() {
 			shell := getShellCached()
 
 			if *executeFlag {
-				executeCommands(executableCommands, shell)
+				executeCommands(executableCommands, getShellCached())
 			} else {
 				if !keyboard.IsFocusTheSame() {
 					color.New(color.Faint).Println("Window focus changed during command generation.")
@@ -483,15 +483,22 @@ func getExecutableCommands(command string) []string {
 }
 
 func executeCommands(commands []string, shell string) {
-	// if we're running bash, concatenate all commands into a single command with newlines, start with set -e
-	// then pipe the whole thing into bash
-	if shell == "bash" {
+	switch shell {
+	case "bash":
 		command := fmt.Sprintf("set -e\n%s", strings.Join(commands, "\n"))
 		err := executeCommand(command, shell)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		return
+	case "powershell":
+		for _, command := range commands {
+			err := executeCommand(command, shell)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+	default:
+		log.Fatalf("Unsupported shell: %s", shell)
 	}
 }
 
