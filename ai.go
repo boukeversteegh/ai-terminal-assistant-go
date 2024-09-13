@@ -246,7 +246,7 @@ func main() {
 			fmt.Println("Panic:", r)
 		}
 	}()
-	modelFlag := flag.String("model", "gpt-4", "Model to use (e.g., gpt-4 or gpt-3.5-turbo)")
+	modelFlag := flag.String("model", "gpt-4-0613", "Model to use (e.g., gpt-4-0613 or gpt-3.5-turbo)")
 	debugFlag := flag.Bool("debug", false, "Enable debug mode")
 	executeFlag := flag.Bool("execute", false, "Execute the command instead of typing it out (dangerous!)")
 	textFlag := flag.Bool("text", false, "Enable text mode")

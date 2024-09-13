@@ -20,7 +20,7 @@ func chatCompletionStream(messages []Message) (*openai.ChatCompletionStream, err
 	}
 	ctx := context.Background()
 	req := openai.ChatCompletionRequest{
-		Model:    openai.GPT4,
+		Model:    openai.GPT40613,
 		Messages: oaiMessages,
 		Stream:   true,
 	}
