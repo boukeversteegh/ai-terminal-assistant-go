@@ -288,6 +288,8 @@ func main() {
 		fmt.Println("User Input:", userInput)
 	}
 
+	functionCalled := false
+
 	isInteractive := isTerm(os.Stdin.Fd())
 	withPipedInput := !isInteractive
 	if withPipedInput {
@@ -347,6 +349,7 @@ func main() {
 		}
 
 		if chunkResponse.Choices[0].Delta.FunctionCall != nil {
+			functionCalled = true
 			if chunkResponse.Choices[0].Delta.FunctionCall.Name != "" {
 				functionName = chunkResponse.Choices[0].Delta.FunctionCall.Name
 			}
@@ -362,6 +365,14 @@ func main() {
 
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	if *debugFlag {
+		fmt.Printf("Function called: %v\n", functionCalled)
+		if functionCalled {
+			fmt.Printf("Function name: %s\n", functionName)
+			fmt.Printf("Function arguments: %s\n", functionArgs)
+		}
 	}
 
 	if mode == CommandMode {
