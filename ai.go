@@ -324,6 +324,7 @@ func main() {
 	gpt3Flag := flag.Bool("3", false, "Shorthand for --model=gpt-3.5-turbo")
 	initFlag := flag.Bool("init", false, "Initialize AI")
 	listModelsFlag := flag.Bool("list-models", false, "List available models")
+	listModelsFlag := flag.Bool("list-models", false, "List available models")
 
 	// Add shorthands
 	flag.StringVar((*string)(&modelFlag), "m", "gpt-4", "Shorthand for model")
