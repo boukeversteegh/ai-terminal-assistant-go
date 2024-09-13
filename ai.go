@@ -147,14 +147,13 @@ func sudoAvailable() bool {
 
 func getAiHome() string {
 	aiHome := os.Getenv("AI_HOME")
-	if aiHome == "" {
-		aiHome = filepath.Join(filepath.Dir(os.Args[0]))
-	}
-
-	// If we are running AI using `go run`, the AI_HOME environment variable will be set to a go-build directory.
-	// We need to check for this and ask the user to set the AI_HOME environment variable manually.
-	if strings.Contains(aiHome, "go-build") {
-		panic(errors.New("AI_HOME is a go-build directory. When running from source with `go run`, please set the AI_HOME environment variable manually."))
+	if aiHome == "" || strings.Contains(aiHome, "go-build") {
+		// Fallback: use the directory of the current file
+		_, filename, _, ok := runtime.Caller(0)
+		if !ok {
+			panic(errors.New("Failed to get current file path"))
+		}
+		aiHome = filepath.Dir(filename)
 	}
 
 	return aiHome
