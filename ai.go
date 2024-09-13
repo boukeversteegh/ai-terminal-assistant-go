@@ -404,6 +404,7 @@ func main() {
 			chunk := chunkResponse.Choices[0].Delta.Content
 			response += chunk
 			printChunk(chunk, isInteractive)
+			fmt.Printf("Debug: Received chunk: %s\n", chunk)
 		}
 	}
 
