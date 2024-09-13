@@ -16,7 +16,7 @@ type ReturnCommandFunction struct {
 	Binaries []string `json:"binaries"`
 }
 
-func chatCompletionStream(messages []Message) (*openai.ChatCompletionStream, error) {
+func chatCompletionStream(messages []Message, model string) (*openai.ChatCompletionStream, error) {
 	var oaiMessages []openai.ChatCompletionMessage
 	for _, msg := range messages {
 		oaiMessages = append(oaiMessages, openai.ChatCompletionMessage{
@@ -49,7 +49,7 @@ func chatCompletionStream(messages []Message) (*openai.ChatCompletionStream, err
 
 	ctx := context.Background()
 	req := openai.ChatCompletionRequest{
-		Model:        openai.GPT40613,
+		Model:        model,
 		Messages:     oaiMessages,
 		Stream:       true,
 		Functions:    []openai.FunctionDefinition{returnCommandFunction},

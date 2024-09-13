@@ -321,7 +321,7 @@ func main() {
 		}
 	}
 
-	chunkStream, err := chatCompletionStream(messages)
+	chunkStream, err := chatCompletionStream(messages, *modelFlag)
 	if err != nil {
 		panic(err)
 	}
@@ -399,7 +399,7 @@ func main() {
 				alternativeInput := fmt.Sprintf("The following binaries are missing: %s. Please provide a command to install these binaries, or if that's not possible, provide an alternative command that doesn't require these binaries. If installation instructions are complex, provide a brief explanation or a link to installation instructions.", strings.Join(missingBinaries, ", "))
 				alternativeMessages := append(messages, Message{Role: "user", Content: alternativeInput})
 
-				alternativeResponse, alternativeCommand := getAlternativeResponse(alternativeMessages)
+				alternativeResponse, alternativeCommand := getAlternativeResponse(alternativeMessages, *modelFlag)
 
 				if alternativeCommand != nil && alternativeCommand.Command != "" {
 					fmt.Println("\nAI's alternative command:")
@@ -570,8 +570,8 @@ func checkBinaries(binaries []string) []string {
 	return missingBinaries
 }
 
-func getAlternativeResponse(messages []Message) (string, *ReturnCommandFunction) {
-	chunkStream, err := chatCompletionStream(messages)
+func getAlternativeResponse(messages []Message, model string) (string, *ReturnCommandFunction) {
+	chunkStream, err := chatCompletionStream(messages, model)
 	if err != nil {
 		panic(err)
 	}
