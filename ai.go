@@ -326,6 +326,9 @@ func main() {
 
 	var response = ""
 	var firstResponse = true
+	var functionName string
+	var functionArgs string
+
 	for {
 		// Clear the 'thinking' message on first chunk
 		if mode == CommandMode && firstResponse {
@@ -341,10 +344,19 @@ func main() {
 			fmt.Printf("\nStream error: %v\n", err)
 			return
 		}
-		chunk := chunkResponse.Choices[0].Delta.Content
-		response += chunk
 
-		printChunk(chunk, isInteractive)
+		if chunkResponse.Choices[0].Delta.FunctionCall != nil {
+			if chunkResponse.Choices[0].Delta.FunctionCall.Name != "" {
+				functionName = chunkResponse.Choices[0].Delta.FunctionCall.Name
+			}
+			if chunkResponse.Choices[0].Delta.FunctionCall.Arguments != "" {
+				functionArgs += chunkResponse.Choices[0].Delta.FunctionCall.Arguments
+			}
+		} else {
+			chunk := chunkResponse.Choices[0].Delta.Content
+			response += chunk
+			printChunk(chunk, isInteractive)
+		}
 	}
 
 	if err != nil {
@@ -352,24 +364,43 @@ func main() {
 	}
 
 	if mode == CommandMode {
-		executableCommands := getExecutableCommands(response)
-
-		shell := getShellCached()
-
-		if *executeFlag {
-			executeCommands(executableCommands, shell)
-		} else {
-			if !keyboard.IsFocusTheSame() {
-				color.New(color.Faint).Println("Window focus changed during command generation.")
-				color.Unset()
-
-				if !withPipedInput {
-					fmt.Println("Press enter to continue")
-					fmt.Scanln()
-				}
+		if functionName == "return_command" {
+			var returnCommand ReturnCommandFunction
+			err := json.Unmarshal([]byte(functionArgs), &returnCommand)
+			if err != nil {
+				log.Fatalln("Error parsing function arguments:", err)
 			}
-			typeCommands(executableCommands, keyboard)
+
+			// Check if required binaries are available
+			missingBinaries := checkBinaries(returnCommand.Binaries)
+			if len(missingBinaries) > 0 {
+				color.Red("Missing required binaries: %s", strings.Join(missingBinaries, ", "))
+				return
+			}
+
+			executableCommands := []string{returnCommand.Command}
+			shell := getShellCached()
+
+			if *executeFlag {
+				executeCommands(executableCommands, shell)
+			} else {
+				if !keyboard.IsFocusTheSame() {
+					color.New(color.Faint).Println("Window focus changed during command generation.")
+					color.Unset()
+
+					if !withPipedInput {
+						fmt.Println("Press enter to continue")
+						fmt.Scanln()
+					}
+				}
+				typeCommands(executableCommands, keyboard)
+			}
+		} else {
+			color.Yellow("No command returned. AI response:")
+			fmt.Println(response)
 		}
+	} else {
+		fmt.Println(response)
 	}
 }
 
@@ -475,4 +506,15 @@ func typeCommands(executableCommands []string, keyboard KeyboardInterface) {
 
 func isTerm(fd uintptr) bool {
 	return terminal.IsTerminal(int(fd))
+}
+
+func checkBinaries(binaries []string) []string {
+	var missingBinaries []string
+	for _, binary := range binaries {
+		_, err := exec.LookPath(binary)
+		if err != nil {
+			missingBinaries = append(missingBinaries, binary)
+		}
+	}
+	return missingBinaries
 }
