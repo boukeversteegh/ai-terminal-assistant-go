@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"runtime"
 	"runtime/debug"
 	"sort"
 	"strings"

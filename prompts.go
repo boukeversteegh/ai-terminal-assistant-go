@@ -1,14 +1,15 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/go-yaml/yaml"
+	"github.com/pkg/errors"
 )
 
 type Shell struct {
@@ -36,10 +37,10 @@ const (
 func generateChatGPTMessages(userInput string, mode Mode) []Message {
 	shell := getShellCached()
 	shellVersion := getShellVersion(shell)
-	systemInfo := getSystemInfo()
-	workingDirectory := getWorkingDirectory()
-	packageManagers := getPackageManagers()
-	sudo := sudoAvailable()
+	systemInfo := runtime.GOOS
+	workingDirectory, _ := os.Getwd()
+	packageManagers := []string{} // This should be implemented based on the OS
+	sudo := false // This should be implemented based on the OS
 
 	prompts := Prompts{}
 
