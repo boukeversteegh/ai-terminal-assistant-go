@@ -161,7 +161,9 @@ func main() {
 			panic(err)
 		}
 		defer chunkStream.Close()
-		fmt.Println("Debug: Chat completion stream created")
+		if *debugFlag {
+			fmt.Println("Debug: Chat completion stream created")
+		}
 
 		var response = ""
 		var firstResponse = true
@@ -196,7 +198,6 @@ func main() {
 				chunk := chunkResponse.Choices[0].Delta.Content
 				response += chunk
 				printChunk(chunk, isInteractive)
-				fmt.Printf("Debug: Received chunk: %s\n", chunk)
 			}
 		}
 
@@ -222,7 +223,7 @@ func main() {
 			}
 
 			// Print the command in blue
-			color.Blue("Command: %s", returnCommand.Command)
+			color.Blue(returnCommand.Command)
 
 			// Check if required binaries are available
 			missingBinaries := checkBinaries(returnCommand.Binaries)
