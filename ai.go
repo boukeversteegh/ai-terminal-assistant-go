@@ -241,73 +241,27 @@ const (
 
 type Model string
 
-const (
-	GPT432K0613           Model = "gpt-4-32k-0613"
-	GPT432K0314           Model = "gpt-4-32k-0314"
-	GPT432K               Model = "gpt-4-32k"
-	GPT40613              Model = "gpt-4-0613"
-	GPT40314              Model = "gpt-4-0314"
-	GPT4o                 Model = "gpt-4o"
-	GPT4o20240513         Model = "gpt-4o-2024-05-13"
-	GPT4o20240806         Model = "gpt-4o-2024-08-06"
-	GPT4oLatest           Model = "chatgpt-4o-latest"
-	GPT4oMini             Model = "gpt-4o-mini"
-	GPT4oMini20240718     Model = "gpt-4o-mini-2024-07-18"
-	GPT4Turbo             Model = "gpt-4-turbo"
-	GPT4Turbo20240409     Model = "gpt-4-turbo-2024-04-09"
-	GPT4Turbo0125         Model = "gpt-4-0125-preview"
-	GPT4Turbo1106         Model = "gpt-4-1106-preview"
-	GPT4TurboPreview      Model = "gpt-4-turbo-preview"
-	GPT4VisionPreview     Model = "gpt-4-vision-preview"
-	GPT4                  Model = "gpt-4"
-	GPT3Dot5Turbo0125     Model = "gpt-3.5-turbo-0125"
-	GPT3Dot5Turbo1106     Model = "gpt-3.5-turbo-1106"
-	GPT3Dot5Turbo0613     Model = "gpt-3.5-turbo-0613"
-	GPT3Dot5Turbo0301     Model = "gpt-3.5-turbo-0301"
-	GPT3Dot5Turbo16K      Model = "gpt-3.5-turbo-16k"
-	GPT3Dot5Turbo16K0613  Model = "gpt-3.5-turbo-16k-0613"
-	GPT3Dot5Turbo         Model = "gpt-3.5-turbo"
-	GPT3Dot5TurboInstruct Model = "gpt-3.5-turbo-instruct"
-)
-
-var AllModels = []Model{
-	GPT432K0613, GPT432K0314, GPT432K, GPT40613, GPT40314, GPT4o, GPT4o20240513, GPT4o20240806,
-	GPT4oLatest, GPT4oMini, GPT4oMini20240718, GPT4Turbo, GPT4Turbo20240409, GPT4Turbo0125,
-	GPT4Turbo1106, GPT4TurboPreview, GPT4VisionPreview, GPT4, GPT3Dot5Turbo0125, GPT3Dot5Turbo1106,
-	GPT3Dot5Turbo0613, GPT3Dot5Turbo0301, GPT3Dot5Turbo16K, GPT3Dot5Turbo16K0613, GPT3Dot5Turbo,
-	GPT3Dot5TurboInstruct,
-}
-
 func (m *Model) String() string {
 	return string(*m)
 }
 
 func (m *Model) Set(value string) error {
-	for _, validModel := range AllModels {
-		if string(validModel) == value {
-			*m = Model(value)
-			return nil
-		}
-	}
-	return fmt.Errorf("invalid model: %s", value)
+	*m = Model(value)
+	return nil
 }
 
-func checkModelSupport(model Model) bool {
+func getAvailableModels() ([]string, error) {
 	client := openai.NewClient(getAPIKey())
-	_, err := client.CreateChatCompletion(
-		context.Background(),
-		openai.ModelsList{}
-		openai.ChatCompletionRequest{
-			Model: model.String(),
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: "This is a test message.",
-				},
-			},
-		},
-	)
-	return err == nil
+	modelList, err := client.ListModels(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	var models []string
+	for _, model := range modelList.Models {
+		models = append(models, model.ID)
+	}
+	return models, nil
 }
 func main() {
 	defer func() {
