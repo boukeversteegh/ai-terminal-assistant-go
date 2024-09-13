@@ -398,10 +398,29 @@ func main() {
 				alternativeInput := fmt.Sprintf("The following binaries are missing: %s. Please provide a command to install these binaries, or if that's not possible, provide an alternative command that doesn't require these binaries. If installation instructions are complex, provide a brief explanation or a link to installation instructions.", strings.Join(missingBinaries, ", "))
 				alternativeMessages := append(messages, Message{Role: "user", Content: alternativeInput})
 				
-				alternativeResponse := getAlternativeResponse(alternativeMessages)
+				alternativeResponse, alternativeCommand := getAlternativeResponse(alternativeMessages)
 				
-				fmt.Println("\nAI's alternative response:")
-				fmt.Println(alternativeResponse)
+				if alternativeCommand != nil && alternativeCommand.Command != "" {
+					fmt.Println("\nAI's alternative command:")
+					fmt.Println(alternativeCommand.Command)
+					
+					// Check if required binaries for the alternative command are available
+					missingBinaries := checkBinaries(alternativeCommand.Binaries)
+					if len(missingBinaries) > 0 {
+						color.Yellow("The alternative command also requires missing binaries: %s", strings.Join(missingBinaries, ", "))
+						fmt.Println("\nAI's explanation:")
+						fmt.Println(alternativeResponse)
+					} else {
+						if *executeFlag {
+							executeCommands([]string{alternativeCommand.Command}, shell)
+						} else {
+							typeCommands([]string{alternativeCommand.Command}, keyboard)
+						}
+					}
+				} else {
+					fmt.Println("\nAI's alternative response:")
+					fmt.Println(alternativeResponse)
+				}
 				return
 			}
 
@@ -546,7 +565,7 @@ func checkBinaries(binaries []string) []string {
 	return missingBinaries
 }
 
-func getAlternativeResponse(messages []Message) string {
+func getAlternativeResponse(messages []Message) (string, *ReturnCommandFunction) {
 	chunkStream, err := chatCompletionStream(messages)
 	if err != nil {
 		panic(err)
@@ -554,6 +573,10 @@ func getAlternativeResponse(messages []Message) string {
 	defer chunkStream.Close()
 
 	var response string
+	var functionName string
+	var functionArgs string
+	var returnCommand *ReturnCommandFunction
+
 	for {
 		chunkResponse, err := chunkStream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -561,13 +584,29 @@ func getAlternativeResponse(messages []Message) string {
 		}
 		if err != nil {
 			fmt.Printf("\nStream error: %v\n", err)
-			return ""
+			return "", nil
 		}
 
-		if chunkResponse.Choices[0].Delta.Content != "" {
+		if chunkResponse.Choices[0].Delta.FunctionCall != nil {
+			if chunkResponse.Choices[0].Delta.FunctionCall.Name != "" {
+				functionName = chunkResponse.Choices[0].Delta.FunctionCall.Name
+			}
+			if chunkResponse.Choices[0].Delta.FunctionCall.Arguments != "" {
+				functionArgs += chunkResponse.Choices[0].Delta.FunctionCall.Arguments
+			}
+		} else if chunkResponse.Choices[0].Delta.Content != "" {
 			response += chunkResponse.Choices[0].Delta.Content
 		}
 	}
 
-	return response
+	if functionName == "return_command" {
+		returnCommand = &ReturnCommandFunction{}
+		err := json.Unmarshal([]byte(functionArgs), returnCommand)
+		if err != nil {
+			log.Println("Error parsing function arguments:", err)
+			return response, nil
+		}
+	}
+
+	return response, returnCommand
 }
