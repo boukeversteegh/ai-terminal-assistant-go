@@ -221,6 +221,9 @@ func main() {
 				return
 			}
 
+			// Print the command in blue
+			color.Blue("Command: %s", returnCommand.Command)
+
 			// Check if required binaries are available
 			missingBinaries := checkBinaries(returnCommand.Binaries)
 			shell := getShellCached()
