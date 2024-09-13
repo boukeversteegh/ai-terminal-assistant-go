@@ -659,11 +659,21 @@ func getAlternativeResponse(messages []Message, model string) (string, *ReturnCo
 }
 func chatCompletion(messages []Message, model string) (string, error) {
 	client := openai.NewClient(getAPIKey())
+	
+	// Convert our Message type to openai.ChatCompletionMessage
+	var openaiMessages []openai.ChatCompletionMessage
+	for _, msg := range messages {
+		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
+			Role:    msg.Role,
+			Content: msg.Content,
+		})
+	}
+
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:    model,
-			Messages: openai.ChatCompletionMessages(messages),
+			Messages: openaiMessages,
 		},
 	)
 
