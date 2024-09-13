@@ -372,6 +372,12 @@ func main() {
 				log.Fatalln("Error parsing function arguments:", err)
 			}
 
+			if returnCommand.Command == "" {
+				color.Yellow("No command returned. AI response:")
+				fmt.Println(response)
+				return
+			}
+
 			// Check if required binaries are available
 			missingBinaries := checkBinaries(returnCommand.Binaries)
 			if len(missingBinaries) > 0 {

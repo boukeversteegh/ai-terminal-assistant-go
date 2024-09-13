@@ -49,10 +49,11 @@ func chatCompletionStream(messages []Message) (*openai.ChatCompletionStream, err
 
 	ctx := context.Background()
 	req := openai.ChatCompletionRequest{
-		Model:     openai.GPT40613,
-		Messages:  oaiMessages,
-		Stream:    true,
-		Functions: []openai.FunctionDefinition{returnCommandFunction},
+		Model:        openai.GPT40613,
+		Messages:     oaiMessages,
+		Stream:       true,
+		Functions:    []openai.FunctionDefinition{returnCommandFunction},
+		FunctionCall: openai.FunctionCall{Name: "return_command"},
 	}
 
 	c := openai.NewClient(getAPIKey())
