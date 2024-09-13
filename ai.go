@@ -269,18 +269,43 @@ const (
 	GPT3Dot5TurboInstruct Model = "gpt-3.5-turbo-instruct"
 )
 
+var AllModels = []Model{
+	GPT432K0613, GPT432K0314, GPT432K, GPT40613, GPT40314, GPT4o, GPT4o20240513, GPT4o20240806,
+	GPT4oLatest, GPT4oMini, GPT4oMini20240718, GPT4Turbo, GPT4Turbo20240409, GPT4Turbo0125,
+	GPT4Turbo1106, GPT4TurboPreview, GPT4VisionPreview, GPT4, GPT3Dot5Turbo0125, GPT3Dot5Turbo1106,
+	GPT3Dot5Turbo0613, GPT3Dot5Turbo0301, GPT3Dot5Turbo16K, GPT3Dot5Turbo16K0613, GPT3Dot5Turbo,
+	GPT3Dot5TurboInstruct,
+}
+
 func (m *Model) String() string {
 	return string(*m)
 }
 
 func (m *Model) Set(value string) error {
-	switch value {
-	case string(GPT432K0613), string(GPT432K0314), string(GPT432K), string(GPT40613), string(GPT40314), string(GPT4o), string(GPT4o20240513), string(GPT4o20240806), string(GPT4oLatest), string(GPT4oMini), string(GPT4oMini20240718), string(GPT4Turbo), string(GPT4Turbo20240409), string(GPT4Turbo0125), string(GPT4Turbo1106), string(GPT4TurboPreview), string(GPT4VisionPreview), string(GPT4), string(GPT3Dot5Turbo0125), string(GPT3Dot5Turbo1106), string(GPT3Dot5Turbo0613), string(GPT3Dot5Turbo0301), string(GPT3Dot5Turbo16K), string(GPT3Dot5Turbo16K0613), string(GPT3Dot5Turbo), string(GPT3Dot5TurboInstruct):
-		*m = Model(value)
-		return nil
-	default:
-		return fmt.Errorf("invalid model: %s", value)
+	for _, validModel := range AllModels {
+		if string(validModel) == value {
+			*m = Model(value)
+			return nil
+		}
 	}
+	return fmt.Errorf("invalid model: %s", value)
+}
+
+func checkModelSupport(model Model) bool {
+	client := openai.NewClient(getAPIKey())
+	_, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: model.String(),
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    openai.ChatMessageRoleUser,
+					Content: "This is a test message.",
+				},
+			},
+		},
+	)
+	return err == nil
 }
 func main() {
 	defer func() {
@@ -301,7 +326,7 @@ func main() {
 	listModelsFlag := flag.Bool("list-models", false, "List available models")
 
 	// Add shorthands
-	flag.StringVar(modelFlag, "m", "gpt-4", "Shorthand for model")
+	flag.StringVar((*string)(&modelFlag), "m", "gpt-4", "Shorthand for model")
 	flag.BoolVar(debugFlag, "d", false, "Shorthand for debug")
 	flag.BoolVar(executeFlag, "x", false, "Shorthand for execute")
 
@@ -311,9 +336,14 @@ func main() {
 		initApiKey()
 	}
 
+	if *listModelsFlag {
+		listModels()
+		os.Exit(0)
+	}
+
 	var mode = CommandMode
 	if *gpt3Flag {
-		*modelFlag = GPT3Dot5Turbo
+		modelFlag = GPT3Dot5Turbo
 	}
 	if *textFlag {
 		mode = TextMode
@@ -327,11 +357,6 @@ func main() {
 		fmt.Println("Usage: ai [options] <natural language command>")
 		flag.PrintDefaults()
 		os.Exit(1)
-	}
-
-	if *listModelsFlag {
-		listModels()
-		os.Exit(0)
 	}
 
 	if *debugFlag {
@@ -503,10 +528,15 @@ func main() {
 }
 
 func listModels() {
-	// read from: openai.chatCompletionsSuffix
-	// and check with openai.checkEndpointSupportsModel
 	fmt.Println("Available models:")
-	openai.checkEndpointSupportsModel(openai.chatCompletionsSuffix, "gpt-4-0613")
+	for _, model := range AllModels {
+		supported := checkModelSupport(model)
+		status := "Not supported"
+		if supported {
+			status = "Supported"
+		}
+		fmt.Printf("%s: %s\n", model, status)
+	}
 }
 
 func printChunk(content string, isInteractive bool) {
