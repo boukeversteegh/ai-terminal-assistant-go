@@ -7,7 +7,7 @@ require (
 	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/r3labs/sse v0.0.0-20210224172625-26fe804710bc
-	github.com/sashabaranov/go-openai v1.9.5
+	github.com/sashabaranov/go-openai v1.29.2
 	github.com/shirou/gopsutil v3.21.10+incompatible
 	golang.org/x/crypto v0.7.0
 )
