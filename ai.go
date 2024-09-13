@@ -296,6 +296,7 @@ func checkModelSupport(model Model) bool {
 	client := openai.NewClient(getAPIKey())
 	_, err := client.CreateChatCompletion(
 		context.Background(),
+		openai.ModelsList{}
 		openai.ChatCompletionRequest{
 			Model: model.String(),
 			Messages: []openai.ChatCompletionMessage{
