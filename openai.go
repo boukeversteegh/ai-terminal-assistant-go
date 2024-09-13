@@ -20,10 +20,9 @@ func chatCompletionStream(messages []Message) (*openai.ChatCompletionStream, err
 	}
 	ctx := context.Background()
 	req := openai.ChatCompletionRequest{
-		Model:     openai.GPT3Dot5Turbo,
-		MaxTokens: 150,
-		Messages:  oaiMessages,
-		Stream:    true,
+		Model:    openai.GPT4,
+		Messages: oaiMessages,
+		Stream:   true,
 	}
 
 	c := openai.NewClient(getAPIKey())
