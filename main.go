@@ -262,7 +262,7 @@ func main() {
 	isInteractive := isTerm(os.Stdin.Fd())
 	withPipedInput := !isInteractive
 	if withPipedInput {
-		stdinBytes, err := ioutil.ReadAll(os.Stdin)
+		stdinBytes, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			panic(err)
 		}
