@@ -363,7 +363,7 @@ func main() {
 	}
 
 	if *debugFlag {
-		fmt.Println("Model:", *modelFlag)
+		fmt.Println("Model:", modelFlag.String())
 		fmt.Println("Debug:", *debugFlag)
 		fmt.Println("User Input:", userInput)
 	}
