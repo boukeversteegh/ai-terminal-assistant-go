@@ -357,12 +357,11 @@ func main() {
 	}
 
 	messages := generateChatGPTMessages(userInput, mode)
-	fmt.Println("Debug: Messages generated")
-	for i, msg := range messages {
-		fmt.Printf("Debug: Message %d - Role: %s, Content: %.50s...\n", i, msg.Role, msg.Content)
-	}
-
 	if *debugFlag {
+		fmt.Println("Debug: Messages generated")
+		for i, msg := range messages {
+			fmt.Printf("Debug: Message %d - Role: %s, Content: %.50s...\n", i, msg.Role, msg.Content)
+		}
 		for _, message := range messages {
 			fmt.Println(message.Content)
 		}
