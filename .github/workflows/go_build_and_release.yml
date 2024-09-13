@@ -31,12 +31,12 @@ jobs:
       ARTIFACT_NAME: ai-${{ (matrix.goos == 'darwin') && 'macos' || matrix.goos }}-${{ matrix.goarch }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.20.3
+          go-version: '1.23.1'
 
       - name: Build AI binary
         run: |
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -73,9 +73,9 @@ jobs:
         run: |
           find . -not -path '*/\.*' -type f
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.20.3
+          go-version: '1.23.1'
 
       - name: generate release zips
         run: |
