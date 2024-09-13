@@ -6,164 +6,18 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fatih/color"
-	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 	"golang.org/x/crypto/ssh/terminal"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"runtime/debug"
 	"sort"
 	"strings"
-)
-
-type Shell struct {
-	Messages []Message `yaml:"messages"`
-}
-
-type Prompts struct {
-	Bash       Shell `yaml:"bash"`
-	Powershell Shell `yaml:"powershell"`
-	Command    struct {
-		Messages []Message `yaml:"messages"`
-	} `yaml:"command"`
-	Text struct {
-		Messages []Message `yaml:"messages"`
-	} `yaml:"text"`
-}
-
-func getSystemInfo() string {
-	osName := runtime.GOOS
-	platformSystem := runtime.GOARCH
-
-	return fmt.Sprintf("operating system: %s\nplatform: %s\n", osName, platformSystem)
-}
-
-
-func getWorkingDirectory() string {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	return wd
-}
-
-func getPackageManagers() []string {
-	packageManagers := []string{
-		"pip", "conda", "npm", "yarn", "gem", "apt", "dnf", "yum", "pacman", "zypper", "brew", "choco", "scoop",
-	}
-	var installedPackageManagers []string
-
-	for _, pm := range packageManagers {
-		_, err := exec.LookPath(pm)
-		if err == nil {
-			installedPackageManagers = append(installedPackageManagers, pm)
-		}
-	}
-
-	return installedPackageManagers
-}
-
-func sudoAvailable() bool {
-	_, err := exec.LookPath("sudo")
-	return err == nil
-}
-
-func getAiHome() string {
-	aiHome := os.Getenv("AI_HOME")
-	if aiHome == "" || strings.Contains(aiHome, "go-build") {
-		// Fallback: use the directory of the current file
-		_, filename, _, ok := runtime.Caller(0)
-		if !ok {
-			panic(errors.New("Failed to get current file path"))
-		}
-		aiHome = filepath.Dir(filename)
-	}
-
-	return aiHome
-}
-
-func generateChatGPTMessages(userInput string, mode Mode) []Message {
-	shell := getShell()
-	shellVersion := getShellVersion(shell)
-	systemInfo := getSystemInfo()
-	workingDirectory := getWorkingDirectory()
-	packageManagers := getPackageManagers()
-	sudo := sudoAvailable()
-
-	prompts := Prompts{}
-
-	aiHome := getAiHome()
-	promptsFilePath := filepath.Join(aiHome, "prompts.yaml")
-	promptsData, err := ioutil.ReadFile(promptsFilePath)
-	if err != nil {
-		log.Printf("Error reading prompts file: %s", promptsFilePath)
-		panic(err)
-	}
-	err = yaml.Unmarshal(promptsData, &prompts)
-	if err != nil {
-		panic(err)
-	}
-
-	shellMessages := prompts.Bash.Messages
-	if shell == "powershell" {
-		shellMessages = prompts.Powershell.Messages
-	}
-
-	var commonMessages []Message
-	if mode == CommandMode {
-		commonMessages = prompts.Command.Messages
-	} else {
-		commonMessages = prompts.Text.Messages
-	}
-
-	for i := range commonMessages {
-		commonMessages[i].Content = strings.NewReplacer(
-			"{shell}", shell,
-			"{shell_version}", shellVersion,
-			"{system_info}", systemInfo,
-			"{working_directory}", workingDirectory,
-			"{package_managers}", strings.Join(packageManagers, ", "),
-			"{sudo}", func() string {
-				if sudo {
-					return "sudo"
-				}
-				return "no sudo"
-			}(),
-		).Replace(commonMessages[i].Content)
-	}
-
-	userMessage := Message{
-		Role:    "user",
-		Content: userInput,
-	}
-
-	var outputMessages []Message
-
-	// add common messages
-	outputMessages = append(outputMessages, commonMessages...)
-
-	// add shell messages if in command mode
-	if mode == CommandMode {
-		outputMessages = append(outputMessages, shellMessages...)
-	}
-
-	// add user message
-	outputMessages = append(outputMessages, userMessage)
-	return outputMessages
-}
-
-type Mode int
-
-const (
-	CommandMode Mode = iota
-	TextMode
 )
 
 type Model string
