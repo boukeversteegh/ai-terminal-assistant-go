@@ -305,7 +305,9 @@ func main() {
 	}
 	if *textFlag {
 		mode = TextMode
+		fmt.Println("Debug: Text mode enabled")
 	}
+	fmt.Printf("Debug: Mode is %v\n", mode)
 
 	modelString := modelFlag.String()
 
@@ -351,6 +353,10 @@ func main() {
 	}
 
 	messages := generateChatGPTMessages(userInput, mode)
+	fmt.Println("Debug: Messages generated")
+	for i, msg := range messages {
+		fmt.Printf("Debug: Message %d - Role: %s, Content: %.50s...\n", i, msg.Role, msg.Content)
+	}
 
 	if *debugFlag {
 		for _, message := range messages {
@@ -363,6 +369,7 @@ func main() {
 		panic(err)
 	}
 	defer chunkStream.Close()
+	fmt.Println("Debug: Chat completion stream created")
 
 	var response = ""
 	var firstResponse = true
@@ -482,7 +489,9 @@ func main() {
 			fmt.Println(response)
 		}
 	} else {
+		fmt.Printf("Debug: Entering text mode branch\n")
 		fmt.Printf("AI response (using model %s):\n", modelString)
+		fmt.Printf("Debug: Response length: %d\n", len(response))
 		fmt.Println(response)
 	}
 }
