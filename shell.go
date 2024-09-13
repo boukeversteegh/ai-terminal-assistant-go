@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -64,8 +64,7 @@ func getShellVersion(shell string) string {
 		versionCmd := exec.Command(shell, "-Command", "$PSVersionTable.PSVersion")
 		versionCmdOutput, err := versionCmd.Output()
 		if err != nil {
-			log.Printf("Error getting shell version: %s", shell)
-			panic(err)
+			return "Error getting PowerShell version"
 		}
 		versionCmdOutputString := string(versionCmdOutput)
 		versionOutput = &versionCmdOutputString
@@ -73,8 +72,7 @@ func getShellVersion(shell string) string {
 		versionCmd := exec.Command(shell, "--version")
 		versionCmdOutput, err := versionCmd.Output()
 		if err != nil {
-			log.Printf("Error getting shell version: %s", shell)
-			panic(err)
+			return "Error getting shell version"
 		}
 		versionCmdOutputString := string(versionCmdOutput)
 		versionOutput = &versionCmdOutputString

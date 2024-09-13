@@ -9,7 +9,6 @@ import (
 	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
-	"github.com/shirou/gopsutil/process"
 	"golang.org/x/crypto/ssh/terminal"
 	"io"
 	"io/ioutil"
