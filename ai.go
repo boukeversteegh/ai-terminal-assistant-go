@@ -532,14 +532,15 @@ func main() {
 }
 
 func listModels() {
+	models, err := getAvailableModels()
+	if err != nil {
+		fmt.Printf("Error fetching models: %v\n", err)
+		return
+	}
+
 	fmt.Println("Available models:")
-	for _, model := range AllModels {
-		supported := checkModelSupport(model)
-		status := "Not supported"
-		if supported {
-			status = "Supported"
-		}
-		fmt.Printf("%s: %s\n", model.String(), status)
+	for _, model := range models {
+		fmt.Println(model)
 	}
 }
 
