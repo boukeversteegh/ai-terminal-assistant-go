@@ -393,8 +393,15 @@ func main() {
 			missingBinaries := checkBinaries(returnCommand.Binaries)
 			if len(missingBinaries) > 0 {
 				color.Yellow("Missing required binaries: %s", strings.Join(missingBinaries, ", "))
-				color.Yellow("Please install the missing binaries and try again.")
-				color.Yellow("You can search online for installation instructions specific to your operating system.")
+				
+				// Inform the AI about missing binaries and ask for an alternative
+				alternativeInput := fmt.Sprintf("The following binaries are missing: %s. Please provide a command to install these binaries, or if that's not possible, provide an alternative command that doesn't require these binaries. If installation instructions are complex, provide a brief explanation or a link to installation instructions.", strings.Join(missingBinaries, ", "))
+				alternativeMessages := append(messages, Message{Role: "user", Content: alternativeInput})
+				
+				alternativeResponse := getAlternativeResponse(alternativeMessages)
+				
+				fmt.Println("\nAI's alternative response:")
+				fmt.Println(alternativeResponse)
 				return
 			}
 
