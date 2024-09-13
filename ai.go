@@ -7,6 +7,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
+	"github.com/sashabaranov/go-openai"
 	"github.com/shirou/gopsutil/process"
 	"golang.org/x/crypto/ssh/terminal"
 	"io"
@@ -237,6 +238,50 @@ const (
 	TextMode
 )
 
+type Model string
+
+const (
+	GPT432K0613           Model = "gpt-4-32k-0613"
+	GPT432K0314           Model = "gpt-4-32k-0314"
+	GPT432K               Model = "gpt-4-32k"
+	GPT40613              Model = "gpt-4-0613"
+	GPT40314              Model = "gpt-4-0314"
+	GPT4o                 Model = "gpt-4o"
+	GPT4o20240513         Model = "gpt-4o-2024-05-13"
+	GPT4o20240806         Model = "gpt-4o-2024-08-06"
+	GPT4oLatest           Model = "chatgpt-4o-latest"
+	GPT4oMini             Model = "gpt-4o-mini"
+	GPT4oMini20240718     Model = "gpt-4o-mini-2024-07-18"
+	GPT4Turbo             Model = "gpt-4-turbo"
+	GPT4Turbo20240409     Model = "gpt-4-turbo-2024-04-09"
+	GPT4Turbo0125         Model = "gpt-4-0125-preview"
+	GPT4Turbo1106         Model = "gpt-4-1106-preview"
+	GPT4TurboPreview      Model = "gpt-4-turbo-preview"
+	GPT4VisionPreview     Model = "gpt-4-vision-preview"
+	GPT4                  Model = "gpt-4"
+	GPT3Dot5Turbo0125     Model = "gpt-3.5-turbo-0125"
+	GPT3Dot5Turbo1106     Model = "gpt-3.5-turbo-1106"
+	GPT3Dot5Turbo0613     Model = "gpt-3.5-turbo-0613"
+	GPT3Dot5Turbo0301     Model = "gpt-3.5-turbo-0301"
+	GPT3Dot5Turbo16K      Model = "gpt-3.5-turbo-16k"
+	GPT3Dot5Turbo16K0613  Model = "gpt-3.5-turbo-16k-0613"
+	GPT3Dot5Turbo         Model = "gpt-3.5-turbo"
+	GPT3Dot5TurboInstruct Model = "gpt-3.5-turbo-instruct"
+)
+
+func (m *Model) String() string {
+	return string(*m)
+}
+
+func (m *Model) Set(value string) error {
+	switch value {
+	case string(GPT432K0613), string(GPT432K0314), string(GPT432K), string(GPT40613), string(GPT40314), string(GPT4o), string(GPT4o20240513), string(GPT4o20240806), string(GPT4oLatest), string(GPT4oMini), string(GPT4oMini20240718), string(GPT4Turbo), string(GPT4Turbo20240409), string(GPT4Turbo0125), string(GPT4Turbo1106), string(GPT4TurboPreview), string(GPT4VisionPreview), string(GPT4), string(GPT3Dot5Turbo0125), string(GPT3Dot5Turbo1106), string(GPT3Dot5Turbo0613), string(GPT3Dot5Turbo0301), string(GPT3Dot5Turbo16K), string(GPT3Dot5Turbo16K0613), string(GPT3Dot5Turbo), string(GPT3Dot5TurboInstruct):
+		*m = Model(value)
+		return nil
+	default:
+		return fmt.Errorf("invalid model: %s", value)
+	}
+}
 func main() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -246,12 +291,14 @@ func main() {
 			fmt.Println("Panic:", r)
 		}
 	}()
-	modelFlag := flag.String("model", "gpt-4-0613", "Model to use (e.g., gpt-4-0613 or gpt-3.5-turbo)")
+	modelFlag := Model("gpt-4-0613")
+	flag.Var(&modelFlag, "model", "Model to use (e.g., gpt-4-0613 or gpt-3.5-turbo)")
 	debugFlag := flag.Bool("debug", false, "Enable debug mode")
 	executeFlag := flag.Bool("execute", false, "Execute the command instead of typing it out (dangerous!)")
 	textFlag := flag.Bool("text", false, "Enable text mode")
 	gpt3Flag := flag.Bool("3", false, "Shorthand for --model=gpt-3.5-turbo")
 	initFlag := flag.Bool("init", false, "Initialize AI")
+	listModelsFlag := flag.Bool("list-models", false, "List available models")
 
 	// Add shorthands
 	flag.StringVar(modelFlag, "m", "gpt-4", "Shorthand for model")
@@ -266,7 +313,7 @@ func main() {
 
 	var mode = CommandMode
 	if *gpt3Flag {
-		*modelFlag = "gpt-3.5-turbo"
+		*modelFlag = GPT3Dot5Turbo
 	}
 	if *textFlag {
 		mode = TextMode
@@ -280,6 +327,11 @@ func main() {
 		fmt.Println("Usage: ai [options] <natural language command>")
 		flag.PrintDefaults()
 		os.Exit(1)
+	}
+
+	if *listModelsFlag {
+		listModels()
+		os.Exit(0)
 	}
 
 	if *debugFlag {
@@ -448,6 +500,13 @@ func main() {
 		fmt.Printf("AI response (using model %s):\n", *modelFlag)
 		fmt.Println(response)
 	}
+}
+
+func listModels() {
+	// read from: openai.chatCompletionsSuffix
+	// and check with openai.checkEndpointSupportsModel
+	fmt.Println("Available models:")
+	openai.checkEndpointSupportsModel(openai.chatCompletionsSuffix, "gpt-4-0613")
 }
 
 func printChunk(content string, isInteractive bool) {
