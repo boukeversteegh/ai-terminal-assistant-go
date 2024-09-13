@@ -373,7 +373,9 @@ func main() {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("AI response (using model %s):\n", modelString)
+		if *debugFlag {
+			fmt.Printf("AI response (using model %s):\n", modelString)
+		}
 		fmt.Println(response)
 	} else {
 		chunkStream, err := chatCompletionStream(messages, modelString)
