@@ -390,9 +390,38 @@ func main() {
 			}
 
 			// Check if required binaries are available
-			missingBinaries := checkBinaries(returnCommand.Binaries)
+			missingBinaries, missingBinariesMessage := checkBinaries(returnCommand.Binaries)
 			if len(missingBinaries) > 0 {
-				color.Red("Missing required binaries: %s", strings.Join(missingBinaries, ", "))
+				color.Yellow("Missing required binaries. Asking AI for installation instructions...")
+				
+				// Generate a new request to the AI
+				newUserInput := fmt.Sprintf("%s\n\n%s", userInput, missingBinariesMessage)
+				newMessages := generateChatGPTMessages(newUserInput, mode)
+				
+				// Make a new request to the AI
+				newChunkStream, err := chatCompletionStream(newMessages)
+				if err != nil {
+					log.Fatalln("Error requesting installation instructions:", err)
+				}
+				defer newChunkStream.Close()
+
+				// Process the new response
+				var newResponse string
+				for {
+					newChunkResponse, err := newChunkStream.Recv()
+					if errors.Is(err, io.EOF) {
+						break
+					}
+					if err != nil {
+						log.Fatalln("Stream error:", err)
+					}
+					chunk := newChunkResponse.Choices[0].Delta.Content
+					newResponse += chunk
+					printChunk(chunk, isInteractive)
+				}
+
+				color.Yellow("\nAI's response for installing missing binaries:")
+				fmt.Println(newResponse)
 				return
 			}
 
@@ -526,7 +555,7 @@ func isTerm(fd uintptr) bool {
 	return terminal.IsTerminal(int(fd))
 }
 
-func checkBinaries(binaries []string) []string {
+func checkBinaries(binaries []string) ([]string, string) {
 	var missingBinaries []string
 	for _, binary := range binaries {
 		_, err := exec.LookPath(binary)
@@ -534,5 +563,8 @@ func checkBinaries(binaries []string) []string {
 			missingBinaries = append(missingBinaries, binary)
 		}
 	}
-	return missingBinaries
+	if len(missingBinaries) > 0 {
+		return missingBinaries, fmt.Sprintf("The following binaries are not installed: %s. Please provide a command or instructions on how to install them.", strings.Join(missingBinaries, ", "))
+	}
+	return nil, ""
 }
