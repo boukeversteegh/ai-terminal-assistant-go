@@ -538,7 +538,7 @@ func listModels() {
 		if supported {
 			status = "Supported"
 		}
-		fmt.Printf("%s: %s\n", model, status)
+		fmt.Printf("%s: %s\n", model.String(), status)
 	}
 }
 
