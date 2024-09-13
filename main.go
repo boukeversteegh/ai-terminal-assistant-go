@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/fatih/color"
@@ -30,20 +28,6 @@ func (m *Model) Set(value string) error {
 	return nil
 }
 
-func getAvailableModels() ([]string, error) {
-	client := openai.NewClient(getAPIKey())
-	modelList, err := client.ListModels(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	var models []string
-	for _, model := range modelList.Models {
-		models = append(models, model.ID)
-	}
-	sort.Strings(models)
-	return models, nil
-}
 func main() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -73,8 +57,10 @@ func main() {
 		initApiKey()
 	}
 
+	aiClient := NewAIClient(getAPIKey(), modelFlag.String())
+
 	if *listModelsFlag {
-		listModels()
+		listModels(aiClient)
 		os.Exit(0)
 	}
 
@@ -147,7 +133,7 @@ func main() {
 	}
 
 	if mode == TextMode {
-		response, err := chatCompletion(messages, modelString)
+		response, err := aiClient.ChatCompletion(messages)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -156,7 +142,7 @@ func main() {
 		}
 		fmt.Println(response)
 	} else {
-		chunkStream, err := chatCompletionStream(messages, modelString)
+		chunkStream, err := aiClient.ChatCompletionStream(messages)
 		if err != nil {
 			panic(err)
 		}
@@ -283,14 +269,15 @@ func main() {
 	}
 }
 
-func listModels() {
-	models, err := getAvailableModels()
+func listModels(aiClient *AIClient) {
+	models, err := aiClient.GetAvailableModels()
 	if err != nil {
 		fmt.Printf("Error fetching models: %v\n", err)
 		return
 	}
 
 	fmt.Println("Available models:")
+	sort.Strings(models)
 	for _, model := range models {
 		fmt.Println(model)
 	}
@@ -444,30 +431,4 @@ func getAlternativeResponse(messages []Message, model string) (string, *ReturnCo
 	}
 
 	return response, returnCommand
-}
-func chatCompletion(messages []Message, model string) (string, error) {
-	client := openai.NewClient(getAPIKey())
-
-	// Convert our Message type to openai.ChatCompletionMessage
-	var openaiMessages []openai.ChatCompletionMessage
-	for _, msg := range messages {
-		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
-			Role:    msg.Role,
-			Content: msg.Content,
-		})
-	}
-
-	resp, err := client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model:    model,
-			Messages: openaiMessages,
-		},
-	)
-
-	if err != nil {
-		return "", err
-	}
-
-	return resp.Choices[0].Message.Content, nil
 }
