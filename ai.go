@@ -391,19 +391,20 @@ func main() {
 
 			// Check if required binaries are available
 			missingBinaries := checkBinaries(returnCommand.Binaries)
+			shell := getShellCached()
 			if len(missingBinaries) > 0 {
 				color.Yellow("Missing required binaries: %s", strings.Join(missingBinaries, ", "))
-				
+
 				// Inform the AI about missing binaries and ask for an alternative
 				alternativeInput := fmt.Sprintf("The following binaries are missing: %s. Please provide a command to install these binaries, or if that's not possible, provide an alternative command that doesn't require these binaries. If installation instructions are complex, provide a brief explanation or a link to installation instructions.", strings.Join(missingBinaries, ", "))
 				alternativeMessages := append(messages, Message{Role: "user", Content: alternativeInput})
-				
+
 				alternativeResponse, alternativeCommand := getAlternativeResponse(alternativeMessages)
-				
+
 				if alternativeCommand != nil && alternativeCommand.Command != "" {
 					fmt.Println("\nAI's alternative command:")
 					fmt.Println(alternativeCommand.Command)
-					
+
 					// Check if required binaries for the alternative command are available
 					missingBinaries := checkBinaries(alternativeCommand.Binaries)
 					if len(missingBinaries) > 0 {
@@ -414,7 +415,7 @@ func main() {
 						if *executeFlag {
 							executeCommands([]string{alternativeCommand.Command}, shell)
 						} else {
-							typeCommands([]string{alternativeCommand.Command}, keyboard)
+							typeCommands([]string{alternativeCommand.Command}, keyboard, shell)
 						}
 					}
 				} else {
@@ -425,9 +426,6 @@ func main() {
 			}
 
 			executableCommands := []string{returnCommand.Command}
-			shell := getShellCached()
-
-			shell := getShellCached()
 			if *executeFlag {
 				executeCommands(executableCommands, shell)
 			} else {
