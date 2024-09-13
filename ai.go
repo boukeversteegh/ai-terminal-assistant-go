@@ -305,9 +305,13 @@ func main() {
 	}
 	if *textFlag {
 		mode = TextMode
-		fmt.Println("Debug: Text mode enabled")
+		if *debugFlag {
+			fmt.Println("Debug: Text mode enabled")
+		}
 	}
-	fmt.Printf("Debug: Mode is %v\n", mode)
+	if *debugFlag {
+		fmt.Printf("Debug: Mode is %v\n", mode)
+	}
 
 	modelString := modelFlag.String()
 
