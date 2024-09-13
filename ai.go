@@ -392,36 +392,9 @@ func main() {
 			// Check if required binaries are available
 			missingBinaries, missingBinariesMessage := checkBinaries(returnCommand.Binaries)
 			if len(missingBinaries) > 0 {
-				color.Yellow("Missing required binaries. Asking AI for installation instructions...")
-				
-				// Generate a new request to the AI
-				newUserInput := fmt.Sprintf("%s\n\n%s", userInput, missingBinariesMessage)
-				newMessages := generateChatGPTMessages(newUserInput, mode)
-				
-				// Make a new request to the AI
-				newChunkStream, err := chatCompletionStream(newMessages)
-				if err != nil {
-					log.Fatalln("Error requesting installation instructions:", err)
-				}
-				defer newChunkStream.Close()
-
-				// Process the new response
-				var newResponse string
-				for {
-					newChunkResponse, err := newChunkStream.Recv()
-					if errors.Is(err, io.EOF) {
-						break
-					}
-					if err != nil {
-						log.Fatalln("Stream error:", err)
-					}
-					chunk := newChunkResponse.Choices[0].Delta.Content
-					newResponse += chunk
-					printChunk(chunk, isInteractive)
-				}
-
-				color.Yellow("\nAI's response for installing missing binaries:")
-				fmt.Println(newResponse)
+				color.Yellow("Missing required binaries: %s", strings.Join(missingBinaries, ", "))
+				color.Yellow("Please install the missing binaries and try again.")
+				color.Yellow("You can search online for installation instructions specific to your operating system.")
 				return
 			}
 
