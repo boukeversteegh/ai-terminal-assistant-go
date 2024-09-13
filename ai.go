@@ -427,8 +427,9 @@ func main() {
 			executableCommands := []string{returnCommand.Command}
 			shell := getShellCached()
 
+			shell := getShellCached()
 			if *executeFlag {
-				executeCommands(executableCommands, getShellCached())
+				executeCommands(executableCommands, shell)
 			} else {
 				if !keyboard.IsFocusTheSame() {
 					color.New(color.Faint).Println("Window focus changed during command generation.")
@@ -439,7 +440,7 @@ func main() {
 						fmt.Scanln()
 					}
 				}
-				typeCommands(executableCommands, keyboard)
+				typeCommands(executableCommands, keyboard, shell)
 			}
 		} else {
 			color.Yellow("No command returned. AI response:")
@@ -524,13 +525,12 @@ type KeyboardInterface interface {
 	IsFocusTheSame() bool
 }
 
-func typeCommands(executableCommands []string, keyboard KeyboardInterface) {
+func typeCommands(executableCommands []string, keyboard KeyboardInterface, shell string) {
 	if len(executableCommands) == 0 {
 		return
 	}
-	shellName := getShell()
 
-	if shellName == "powershell" {
+	if shell == "powershell" {
 		if len(executableCommands) == 1 {
 			keyboard.SendString(executableCommands[0])
 			return
