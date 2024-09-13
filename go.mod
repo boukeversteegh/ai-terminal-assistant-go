@@ -1,6 +1,6 @@
 module github.com/boukeversteegh/ai-terminal-assistant-go
 
-go 1.18
+go 1.23
 
 require (
 	github.com/fatih/color v1.15.0
