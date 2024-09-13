@@ -317,7 +317,7 @@ func main() {
 			fmt.Println("Panic:", r)
 		}
 	}()
-	modelFlag := Model("gpt-4-0613")
+	var modelFlag Model = "gpt-4-0613"
 	flag.Var(&modelFlag, "model", "Model to use (e.g., gpt-4-0613 or gpt-3.5-turbo)")
 	debugFlag := flag.Bool("debug", false, "Enable debug mode")
 	executeFlag := flag.Bool("execute", false, "Execute the command instead of typing it out (dangerous!)")
@@ -327,7 +327,7 @@ func main() {
 	listModelsFlag := flag.Bool("list-models", false, "List available models")
 
 	// Add shorthands
-	flag.StringVar((*string)(&modelFlag), "m", "gpt-4", "Shorthand for model")
+	flag.Var(&modelFlag, "m", "Shorthand for model")
 	flag.BoolVar(debugFlag, "d", false, "Shorthand for debug")
 	flag.BoolVar(executeFlag, "x", false, "Shorthand for execute")
 
