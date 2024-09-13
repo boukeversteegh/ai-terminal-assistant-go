@@ -445,6 +445,7 @@ func main() {
 			fmt.Println(response)
 		}
 	} else {
+		fmt.Printf("AI response (using model %s):\n", *modelFlag)
 		fmt.Println(response)
 	}
 }
