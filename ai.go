@@ -364,63 +364,66 @@ func main() {
 		}
 	}
 
-	chunkStream, err := chatCompletionStream(messages, modelString)
-	if err != nil {
-		panic(err)
-	}
-	defer chunkStream.Close()
-	fmt.Println("Debug: Chat completion stream created")
-
-	var response = ""
-	var firstResponse = true
-	var functionName string
-	var functionArgs string
-
-	for {
-		// Clear the 'thinking' message on first chunk
-		if mode == CommandMode && firstResponse {
-			firstResponse = false
-			color.Yellow("%s\r🤖", strings.Repeat(" ", 80))
-		}
-
-		chunkResponse, err := chunkStream.Recv()
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	if mode == TextMode {
+		response, err := chatCompletion(messages, modelString)
 		if err != nil {
-			fmt.Printf("\nStream error: %v\n", err)
-			return
+			log.Fatalln(err)
 		}
+		fmt.Printf("AI response (using model %s):\n", modelString)
+		fmt.Println(response)
+	} else {
+		chunkStream, err := chatCompletionStream(messages, modelString)
+		if err != nil {
+			panic(err)
+		}
+		defer chunkStream.Close()
+		fmt.Println("Debug: Chat completion stream created")
 
-		if chunkResponse.Choices[0].Delta.FunctionCall != nil {
-			functionCalled = true
-			if chunkResponse.Choices[0].Delta.FunctionCall.Name != "" {
-				functionName = chunkResponse.Choices[0].Delta.FunctionCall.Name
+		var response = ""
+		var firstResponse = true
+		var functionName string
+		var functionArgs string
+
+		for {
+			// Clear the 'thinking' message on first chunk
+			if firstResponse {
+				firstResponse = false
+				color.Yellow("%s\r🤖", strings.Repeat(" ", 80))
 			}
-			if chunkResponse.Choices[0].Delta.FunctionCall.Arguments != "" {
-				functionArgs += chunkResponse.Choices[0].Delta.FunctionCall.Arguments
+
+			chunkResponse, err := chunkStream.Recv()
+			if errors.Is(err, io.EOF) {
+				break
 			}
-		} else {
-			chunk := chunkResponse.Choices[0].Delta.Content
-			response += chunk
-			printChunk(chunk, isInteractive)
-			fmt.Printf("Debug: Received chunk: %s\n", chunk)
+			if err != nil {
+				fmt.Printf("\nStream error: %v\n", err)
+				return
+			}
+
+			if chunkResponse.Choices[0].Delta.FunctionCall != nil {
+				functionCalled = true
+				if chunkResponse.Choices[0].Delta.FunctionCall.Name != "" {
+					functionName = chunkResponse.Choices[0].Delta.FunctionCall.Name
+				}
+				if chunkResponse.Choices[0].Delta.FunctionCall.Arguments != "" {
+					functionArgs += chunkResponse.Choices[0].Delta.FunctionCall.Arguments
+				}
+			} else {
+				chunk := chunkResponse.Choices[0].Delta.Content
+				response += chunk
+				printChunk(chunk, isInteractive)
+				fmt.Printf("Debug: Received chunk: %s\n", chunk)
+			}
 		}
-	}
 
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	if *debugFlag {
-		fmt.Printf("Function called: %v\n", functionCalled)
-		if functionCalled {
-			fmt.Printf("Function name: %s\n", functionName)
-			fmt.Printf("Function arguments: %s\n", functionArgs)
+		if *debugFlag {
+			fmt.Printf("Function called: %v\n", functionCalled)
+			if functionCalled {
+				fmt.Printf("Function name: %s\n", functionName)
+				fmt.Printf("Function arguments: %s\n", functionArgs)
+			}
 		}
-	}
 
-	if mode == CommandMode {
 		if functionName == "return_command" {
 			var returnCommand ReturnCommandFunction
 			err := json.Unmarshal([]byte(functionArgs), &returnCommand)
@@ -489,11 +492,6 @@ func main() {
 			color.Yellow("No command returned. AI response:")
 			fmt.Println(response)
 		}
-	} else {
-		fmt.Printf("Debug: Entering text mode branch\n")
-		fmt.Printf("AI response (using model %s):\n", modelString)
-		fmt.Printf("Debug: Response length: %d\n", len(response))
-		fmt.Println(response)
 	}
 }
 
@@ -658,4 +656,20 @@ func getAlternativeResponse(messages []Message, model string) (string, *ReturnCo
 	}
 
 	return response, returnCommand
+}
+func chatCompletion(messages []Message, model string) (string, error) {
+	client := openai.NewClient(getAPIKey())
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model:    model,
+			Messages: openai.ChatCompletionMessages(messages),
+		},
+	)
+
+	if err != nil {
+		return "", err
+	}
+
+	return resp.Choices[0].Message.Content, nil
 }
