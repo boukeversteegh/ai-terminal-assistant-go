@@ -390,7 +390,7 @@ func main() {
 			}
 
 			// Check if required binaries are available
-			missingBinaries, missingBinariesMessage := checkBinaries(returnCommand.Binaries)
+			missingBinaries := checkBinaries(returnCommand.Binaries)
 			if len(missingBinaries) > 0 {
 				color.Yellow("Missing required binaries: %s", strings.Join(missingBinaries, ", "))
 				color.Yellow("Please install the missing binaries and try again.")
@@ -528,7 +528,7 @@ func isTerm(fd uintptr) bool {
 	return terminal.IsTerminal(int(fd))
 }
 
-func checkBinaries(binaries []string) ([]string, string) {
+func checkBinaries(binaries []string) []string {
 	var missingBinaries []string
 	for _, binary := range binaries {
 		_, err := exec.LookPath(binary)
@@ -536,8 +536,5 @@ func checkBinaries(binaries []string) ([]string, string) {
 			missingBinaries = append(missingBinaries, binary)
 		}
 	}
-	if len(missingBinaries) > 0 {
-		return missingBinaries, fmt.Sprintf("The following binaries are not installed: %s. Please provide a command or instructions on how to install them.", strings.Join(missingBinaries, ", "))
-	}
-	return nil, ""
+	return missingBinaries
 }
