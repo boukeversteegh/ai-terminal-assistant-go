@@ -538,3 +538,29 @@ func checkBinaries(binaries []string) []string {
 	}
 	return missingBinaries
 }
+
+func getAlternativeResponse(messages []Message) string {
+	chunkStream, err := chatCompletionStream(messages)
+	if err != nil {
+		panic(err)
+	}
+	defer chunkStream.Close()
+
+	var response string
+	for {
+		chunkResponse, err := chunkStream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			fmt.Printf("\nStream error: %v\n", err)
+			return ""
+		}
+
+		if chunkResponse.Choices[0].Delta.Content != "" {
+			response += chunkResponse.Choices[0].Delta.Content
+		}
+	}
+
+	return response
+}
