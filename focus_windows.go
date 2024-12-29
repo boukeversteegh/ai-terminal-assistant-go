@@ -74,7 +74,7 @@ func GetWindowThreadId(hwnd uintptr) uintptr {
 }
 
 func GetGUIThreadInfo(threadId uintptr, info *GUITHREADINFO) bool {
-	ret, _, _ := syscall.Syscall(getGUIThreadInfo.Addr(), 2, uintptr(threadId), uintptr(unsafe.Pointer(info)), 0)
+	ret, _, _ := syscall.SyscallN(getGUIThreadInfo.Addr(), 2, uintptr(threadId), uintptr(unsafe.Pointer(info)), 0)
 	return ret != 0
 }
 

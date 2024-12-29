@@ -1,3 +1,21 @@
+// Package main provides a command-line tool for managing and interacting with various models
+// through structured input and output. This package utilizes several third-party libraries to
+// enhance functionality, such as colorized output, error wrapping, and terminal-based input handling.
+//
+// Key Features:
+// - Support for handling different model types using the `Model` type, which implements flag.Value interface for CLI integration.
+// - JSON-based input and output parsing for data interoperability.
+// - Enhanced error handling using the `github.com/pkg/errors` package.
+// - Interactive terminal support via `golang.org/x/term`.
+// - Utilities for string manipulation, sorting, and pattern matching using the standard library.
+//
+// Dependencies:
+// - github.com/fatih/color: Provides colorized terminal output.
+// - github.com/pkg/errors: Enables better error wrapping and stack trace support.
+// - golang.org/x/term: Offers terminal-based input handling.
+//
+// This package is designed for developers who need a flexible tool to interact with models
+// or execute tasks requiring structured input/output and robust error management.
 package main
 
 import (
@@ -6,7 +24,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 	"io"
 	"log"
 	"os"
@@ -373,7 +391,7 @@ func typeCommands(executableCommands []string, keyboard KeyboardInterface, shell
 }
 
 func isTerm(fd uintptr) bool {
-	return terminal.IsTerminal(int(fd))
+	return term.IsTerminal(int(fd))
 }
 
 func checkBinaries(binaries []string) []string {

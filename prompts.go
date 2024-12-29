@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -40,13 +39,13 @@ func generateChatGPTMessages(userInput string, mode Mode) []Message {
 	systemInfo := runtime.GOOS
 	workingDirectory, _ := os.Getwd()
 	packageManagers := []string{} // This should be implemented based on the OS
-	sudo := false // This should be implemented based on the OS
+	sudo := false                 // This should be implemented based on the OS
 
 	prompts := Prompts{}
 
 	aiHome := getAiHome()
 	promptsFilePath := filepath.Join(aiHome, "prompts.yaml")
-	promptsData, err := ioutil.ReadFile(promptsFilePath)
+	promptsData, err := os.ReadFile(promptsFilePath)
 	if err != nil {
 		log.Printf("Error reading prompts file: %s", promptsFilePath)
 		panic(err)

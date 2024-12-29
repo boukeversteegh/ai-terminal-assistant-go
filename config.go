@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/go-yaml/yaml"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -33,7 +32,7 @@ func readAPIKey() string {
 		return envAPIKey
 	}
 
-	configFile, err := ioutil.ReadFile(configFilePath)
+	configFile, err := os.ReadFile(configFilePath)
 	if err != nil {
 		return ""
 	}
@@ -68,7 +67,7 @@ func writeAPIKey(apiKey string) {
 		log.Fatalf("Error marshalling config data: %v", err)
 	}
 
-	err = ioutil.WriteFile(configFilePath, configData, 0644)
+	err = os.WriteFile(configFilePath, configData, 0644)
 	if err != nil {
 		log.Fatalf("Error writing config file: %v", err)
 	}
